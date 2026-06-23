@@ -16,13 +16,16 @@ let
         src
         modules
         ;
+
       subPackages = [ subPkg ];
       doCheck = false;
       ldflags = [
         "-w"
         "-s"
       ];
+
       passthru.updateScript = nix-update-script { };
+
       meta =
         with lib;
         {
