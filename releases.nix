@@ -30,7 +30,7 @@
       };
       external-dns = {
         version = "0.14.2";
-        hash = "sha256-AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=";
+        hash = "sha256-FT+yk+01JdcFOgSvpSn8NXsig0y8pToadBQ6RdFaugE=";
         modules = ./sigs/network/external-dns/0.14/gomod2nix.toml;
       };
     };
@@ -58,7 +58,7 @@
       };
       external-dns = {
         version = "0.15.0";
-        hash = "sha256-AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=";
+        hash = "sha256-VMnb6SvqhStjNF+xb2v6VZw1PQgWJLQMxZqte1c+4aw=";
         modules = ./sigs/network/external-dns/0.15/gomod2nix.toml;
       };
     };
