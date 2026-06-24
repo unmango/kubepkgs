@@ -60,8 +60,8 @@
           versionedSets = lib.mapAttrs (
             v: info:
             mkRelease {
-              version = v;
               inherit (info)
+                version
                 srcHash
                 modules
                 sigs

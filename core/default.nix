@@ -10,7 +10,7 @@
 let
   updateGomod2nix = mkGomod2nixUpdater {
     inherit src;
-    outdir = "core/${version}";
+    outdir = "core/${lib.versions.majorMinor version}";
   };
   mkBin =
     pname: subPkg: extraMeta:
