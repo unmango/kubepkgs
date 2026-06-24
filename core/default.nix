@@ -1,12 +1,17 @@
 {
   buildGoApplication,
   lib,
+  mkGomod2nixUpdater,
   nix-update-script,
   version,
   src,
   modules,
 }:
 let
+  updateGomod2nix = mkGomod2nixUpdater {
+    inherit src;
+    outdir = "core/${version}";
+  };
   mkBin =
     pname: subPkg: extraMeta:
     buildGoApplication {
@@ -24,7 +29,10 @@ let
         "-s"
       ];
 
-      passthru.updateScript = nix-update-script { };
+      passthru = {
+        updateScript = nix-update-script { };
+        inherit updateGomod2nix;
+      };
 
       meta =
         with lib;

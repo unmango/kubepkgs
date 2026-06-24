@@ -2,6 +2,7 @@
   buildGoApplication,
   fetchFromGitHub,
   lib,
+  mkGomod2nixUpdater,
   nix-update-script,
   version,
   hash,
@@ -14,6 +15,7 @@ let
     rev = "v${version}";
     inherit hash;
   };
+  majorMinor = "${lib.versions.major version}.${lib.versions.minor version}";
 in
 buildGoApplication {
   pname = "external-dns";
@@ -24,7 +26,13 @@ buildGoApplication {
     "-w"
     "-s"
   ];
-  passthru.updateScript = nix-update-script { };
+  passthru = {
+    updateScript = nix-update-script { };
+    updateGomod2nix = mkGomod2nixUpdater {
+      inherit src;
+      outdir = "sigs/network/external-dns/${majorMinor}";
+    };
+  };
   meta = with lib; {
     description = "Configure external DNS servers dynamically from Kubernetes resources";
     homepage = "https://github.com/kubernetes-sigs/external-dns";

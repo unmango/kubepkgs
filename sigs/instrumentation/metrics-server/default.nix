@@ -2,6 +2,7 @@
   buildGoApplication,
   fetchFromGitHub,
   lib,
+  mkGomod2nixUpdater,
   nix-update-script,
   version,
   hash,
@@ -14,6 +15,7 @@ let
     rev = "v${version}";
     inherit hash;
   };
+  majorMinor = "${lib.versions.major version}.${lib.versions.minor version}";
 in
 buildGoApplication {
   pname = "metrics-server";
@@ -24,7 +26,13 @@ buildGoApplication {
     "-w"
     "-s"
   ];
-  passthru.updateScript = nix-update-script { };
+  passthru = {
+    updateScript = nix-update-script { };
+    updateGomod2nix = mkGomod2nixUpdater {
+      inherit src;
+      outdir = "sigs/instrumentation/metrics-server/${majorMinor}";
+    };
+  };
   meta = with lib; {
     description = "Scalable and efficient source of container resource metrics for Kubernetes built-in autoscaling pipelines";
     homepage = "https://github.com/kubernetes-sigs/metrics-server";

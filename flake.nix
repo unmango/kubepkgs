@@ -1,5 +1,5 @@
 {
-  description = "A Nix flake";
+  description = "Kubernetes packages by release";
 
   inputs = {
     nixpkgs.url = "github:nixos/nixpkgs?ref=nixos-unstable";
@@ -36,8 +36,17 @@
           ...
         }:
         let
-          inherit (inputs'.gomod2nix.legacyPackages) buildGoApplication;
-          callPackage = lib.callPackageWith ({ inherit buildGoApplication callPackage; } // pkgs);
+          inherit (inputs'.gomod2nix.legacyPackages) buildGoApplication gomod2nix;
+
+          mkGomod2nixUpdater = import ./update.nix {
+            inherit pkgs;
+            gomod2nixPkg = gomod2nix;
+          };
+
+          callPackage = lib.callPackageWith ({
+            inherit buildGoApplication callPackage mkGomod2nixUpdater;
+          } // pkgs);
+
           mkRelease = callPackage ./mk-release.nix { inherit callPackage; };
 
           releases = import ./releases.nix;
@@ -81,6 +90,7 @@
             packages = with pkgs; [
               gnumake
               nixfmt
+              gomod2nix
             ];
           };
 
