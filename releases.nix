@@ -53,7 +53,7 @@
       };
       metrics-server = {
         version = "0.7.2";
-        hash = "sha256-AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=";
+        hash = "sha256-EdVph0HgOp6rIv/m3RtquSZq+43X5O8GJzg0zPXFWFI=";
         modules = ./sigs/instrumentation/metrics-server/0.7/gomod2nix.toml;
       };
       external-dns = {
@@ -81,12 +81,12 @@
       };
       metrics-server = {
         version = "0.7.2";
-        hash = "sha256-AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=";
+        hash = "sha256-EdVph0HgOp6rIv/m3RtquSZq+43X5O8GJzg0zPXFWFI=";
         modules = ./sigs/instrumentation/metrics-server/0.7/gomod2nix.toml;
       };
       external-dns = {
         version = "0.15.0";
-        hash = "sha256-AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=";
+        hash = "sha256-VMnb6SvqhStjNF+xb2v6VZw1PQgWJLQMxZqte1c+4aw=";
         modules = ./sigs/network/external-dns/0.15/gomod2nix.toml;
       };
     };
@@ -109,12 +109,12 @@
       };
       metrics-server = {
         version = "0.7.2";
-        hash = "sha256-AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=";
+        hash = "sha256-EdVph0HgOp6rIv/m3RtquSZq+43X5O8GJzg0zPXFWFI=";
         modules = ./sigs/instrumentation/metrics-server/0.7/gomod2nix.toml;
       };
       external-dns = {
         version = "0.15.0";
-        hash = "sha256-AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=";
+        hash = "sha256-VMnb6SvqhStjNF+xb2v6VZw1PQgWJLQMxZqte1c+4aw=";
         modules = ./sigs/network/external-dns/0.15/gomod2nix.toml;
       };
     };
