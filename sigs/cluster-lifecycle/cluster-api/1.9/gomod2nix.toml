@@ -66,16 +66,16 @@ schema = 3
     hash = 'sha256-7hRlwSR+fos1kx4VZmJ/7snR7zHh8ZFKX+qqqqGcQpY='
 
   [mod.'github.com/cloudflare/circl']
-    version = 'v1.3.7'
-    hash = 'sha256-AkOpcZ+evLxLJStvvr01+TLeWDqcLxY3e/AhGggzh40='
+    version = 'v1.6.1'
+    hash = 'sha256-Dc69V12eIFnJoUNmwg6VKXHfAMijbAeEVSDe8AiOaLo='
 
   [mod.'github.com/coredns/caddy']
     version = 'v1.1.1'
     hash = 'sha256-1MqKszOS4ffQlzsIfgqxRY1v+6Vg0u/GFtSeJDE8yFg='
 
   [mod.'github.com/coredns/corefile-migration']
-    version = 'v1.0.24'
-    hash = 'sha256-SULL50YBzLPRcGp2JMNEao0AKVIUjs1YAJFcevCFx2g='
+    version = 'v1.0.27'
+    hash = 'sha256-4p0jMXpN212V0OWJT8a6tkXSa1oKdeveCV0ohAu2LMw='
 
   [mod.'github.com/coreos/go-semver']
     version = 'v0.3.1'
@@ -462,8 +462,8 @@ schema = 3
     hash = 'sha256-mHEPy0vbd/pFwq5ZAEKaehCeYVQLEFDGnXAoVgkCLPo='
 
   [mod.'golang.org/x/net']
-    version = 'v0.32.0'
-    hash = 'sha256-BI5m7sqmE2kVqPTPjgwIxoPOjwLYeQZiTfJylhZVTVs='
+    version = 'v0.33.0'
+    hash = 'sha256-9swkU9vp6IflUUqAzK+y8PytSmrKLuryidP3RmRfe0w='
 
   [mod.'golang.org/x/oauth2']
     version = 'v0.24.0'
@@ -578,8 +578,8 @@ schema = 3
     hash = 'sha256-C0bmxU0hO5eR+2JV9V7C0ENo/OFXziYPe30fJwAakR4='
 
   [mod.'sigs.k8s.io/controller-runtime']
-    version = 'v0.19.3'
-    hash = 'sha256-5E34ObAmx4GvuW1ZgF/drX1p3n0IuD9SQZBdZDkC0IM='
+    version = 'v0.19.6'
+    hash = 'sha256-HoOyZ0PQvw7ybuvPVxtuRvX8XEJyTvt2qVRs9RbUptw='
 
   [mod.'sigs.k8s.io/json']
     version = 'v0.0.0-20221116044647-bc3834ca7abd'

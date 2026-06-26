@@ -498,8 +498,8 @@ schema = 3
     hash = 'sha256-tVNWDUMILZbJvarcl/E7tpSnkn7urqgSHa2Eaka5vSU='
 
   [mod.'github.com/Microsoft/hnslib']
-    version = 'v0.0.8'
-    hash = 'sha256-b4CYyj5qTPSC2VM3ucJTQhFsDvMoq1OsXAQy9XrwO9w='
+    version = 'v0.1.1'
+    hash = 'sha256-btcok8vcRBHzAilHsVLF+hbE1vj4tBGtz06dZExSQo4='
 
   [mod.'github.com/NYTimes/gziphandler']
     version = 'v1.1.1'
@@ -770,8 +770,8 @@ schema = 3
     hash = 'sha256-qX6aMMNTmN+D7LtQLZxW/LAKxRpze4vO77F2EQLrVRs='
 
   [mod.'github.com/go-logr/logr']
-    version = 'v1.4.2'
-    hash = 'sha256-/W6qGilFlZNTb9Uq48xGZ4IbsVeSwJiAMLw4wiNYHLI='
+    version = 'v1.4.3'
+    hash = 'sha256-Nnp/dEVNMxLp3RSPDHZzGbI8BkSNuZMX0I0cjWKXXLA='
 
   [mod.'github.com/go-logr/stdr']
     version = 'v1.2.2'
@@ -998,8 +998,8 @@ schema = 3
     hash = 'sha256-QmZd79LDGFXHsz8zWoskqRNynSF5SK3tWS3oortkJz4='
 
   [mod.'github.com/moby/spdystream']
-    version = 'v0.5.0'
-    hash = 'sha256-9gVkh6e3y75zBlCBhnwO3k+TL8jnRYg+hGYSFJRA42Y='
+    version = 'v0.5.1'
+    hash = 'sha256-2vAgWBcBoG+DRVG+3rHsSnzovw68oTYb0DFozh1uBUI='
 
   [mod.'github.com/moby/sys/mountinfo']
     version = 'v0.7.2'
@@ -1058,8 +1058,8 @@ schema = 3
     hash = 'sha256-6W8DiZywVs74UjmALfGsSwkwLaAMv1hReRt1ystZ114='
 
   [mod.'github.com/opencontainers/cgroups']
-    version = 'v0.0.1'
-    hash = 'sha256-Rekyxs4sB9qBgx3tBY04k4T093wpATurgmwMWN/8cZw='
+    version = 'v0.0.3'
+    hash = 'sha256-efMZ2NhfWEaS3cWO63NP47eWQnr4r6YP8En+IpedjnM='
 
   [mod.'github.com/opencontainers/go-digest']
     version = 'v1.0.0'
@@ -1134,8 +1134,8 @@ schema = 3
     hash = 'sha256-yDnHsLw8KF4zfbJska1igIo4IbVpGDq+vH3+YV5jCgk='
 
   [mod.'github.com/rogpeppe/go-internal']
-    version = 'v1.13.1'
-    hash = 'sha256-fD4n3XVDNHL7hfUXK9qi31LpBVzWnRK/7LNc3BmPtnU='
+    version = 'v1.14.1'
+    hash = 'sha256-6NzhXCCD1Qhj05WHbCDxH5hwfNM6psoAk7uIxm7N55E='
 
   [mod.'github.com/russross/blackfriday']
     version = 'v1.6.0'
@@ -1178,8 +1178,8 @@ schema = 3
     hash = 'sha256-VKYxrrFb1nkX6Wu3tE5DoP9+fCttwSl9pgLN6567nck='
 
   [mod.'github.com/stretchr/testify']
-    version = 'v1.10.0'
-    hash = 'sha256-fJ4gnPr0vnrOhjQYQwJ3ARDKPsOtA7d4olQmQWR+wpI='
+    version = 'v1.11.1'
+    hash = 'sha256-sWfjkuKJyDllDEtnM8sb/pdLzPQmUYWYtmeWz/5suUc='
 
   [mod.'github.com/tmc/grpc-websocket-proxy']
     version = 'v0.0.0-20220101234140-673ab2c3ae75'
@@ -1250,8 +1250,8 @@ schema = 3
     hash = 'sha256-y7524CIGBFYMnqwSv6uzCN726sXqMx3Pupw9z7NBBsU='
 
   [mod.'go.opentelemetry.io/auto/sdk']
-    version = 'v1.1.0'
-    hash = 'sha256-cA9qCCu8P1NSJRxgmpfkfa5rKyn9X+Y/9FSmSd5xjyo='
+    version = 'v1.2.1'
+    hash = 'sha256-73bFYhnxNf4SfeQ52ebnwOWywdQbqc9lWawCcSgofvE='
 
   [mod.'go.opentelemetry.io/contrib/instrumentation/github.com/emicklei/go-restful/otelrestful']
     version = 'v0.42.0'
@@ -1270,8 +1270,8 @@ schema = 3
     hash = 'sha256-al9RU+T1Gu9YKeVjfgv7wys1FL++0/SVnFFWgWBrG3g='
 
   [mod.'go.opentelemetry.io/otel']
-    version = 'v1.33.0'
-    hash = 'sha256-NdAEEIqa81WLpDJbz4aCR4Ha/WnZcHPXY7d/jSu7H/k='
+    version = 'v1.41.0'
+    hash = 'sha256-FPVlkljBrDio3rM05uZpVGfcHnS3K9wrpK5d/n9haiY='
 
   [mod.'go.opentelemetry.io/otel/exporters/otlp/otlptrace']
     version = 'v1.33.0'
@@ -1286,16 +1286,16 @@ schema = 3
     hash = 'sha256-BSvGmEwjufTUxwCeuY9xr+wx44lNdFDTBpwGPuiC5Vk='
 
   [mod.'go.opentelemetry.io/otel/metric']
-    version = 'v1.33.0'
-    hash = 'sha256-bYr//1svQZ/uVWveaJGAxTpq0/rsFnDHKE6H2gVdce8='
+    version = 'v1.41.0'
+    hash = 'sha256-ewIzb2gPApZcnE6xIi8/k8lfd/38NW5yOAzpOUVVXdk='
 
   [mod.'go.opentelemetry.io/otel/sdk']
     version = 'v1.33.0'
     hash = 'sha256-Xjganq6DesGN9XJUn+JDoKhwJKJ0H/PYzNcZw4qzNno='
 
   [mod.'go.opentelemetry.io/otel/trace']
-    version = 'v1.33.0'
-    hash = 'sha256-2bDa27eZT0+JHcDzV+MMCGKKYs7eYuTtGHIlbE0/gpk='
+    version = 'v1.41.0'
+    hash = 'sha256-kvVEiONIBtfHxT7u+19EWvLzFj+A4Mvke+/VWmlNAM4='
 
   [mod.'go.opentelemetry.io/proto/otlp']
     version = 'v1.4.0'
@@ -1446,8 +1446,8 @@ schema = 3
     hash = 'sha256-Rde0HfCfmCUVlSLB8UCkwyUNCrhYsnCLSrqXqs4v1ks='
 
   [mod.'k8s.io/system-validators']
-    version = 'v1.9.1'
-    hash = 'sha256-nWly4dftpxQB37QEimT9Eid1qf9K8ZSHcTfqttHSFqA='
+    version = 'v1.9.2'
+    hash = 'sha256-Ua3GGkcNejCjv6dAtIQ1bAdNGwhbsJEqq65Ah1VkCAQ='
 
   [mod.'k8s.io/utils']
     version = 'v0.0.0-20241104100929-3ea5e8cea738'
@@ -1462,8 +1462,8 @@ schema = 3
     hash = 'sha256-hSIzGjowUNKNUTdrFD5EpffZ7MIRUvSYprOcf5kPjSc='
 
   [mod.'sigs.k8s.io/knftables']
-    version = 'v0.0.17'
-    hash = 'sha256-YcV5DZ01DK4MNXvEyjeiOe71YG9GWkU/LNO3nsPqAYc='
+    version = 'v0.0.21'
+    hash = 'sha256-U44cRNoPOrpyzyIjmF8lRT1tDlBnCy7y3+ddfNw3DCY='
 
   [mod.'sigs.k8s.io/kustomize/api']
     version = 'v0.19.0'

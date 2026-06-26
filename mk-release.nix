@@ -5,6 +5,7 @@
 {
   version,
   srcHash,
+  commit,
   modules,
   sigs,
 }:
@@ -15,7 +16,14 @@ let
     rev = "v${version}";
     hash = srcHash;
   };
-  core = callPackage ./core { inherit version src modules; };
+  core = callPackage ./core {
+    inherit
+      version
+      src
+      modules
+      commit
+      ;
+  };
 in
 core
 // {

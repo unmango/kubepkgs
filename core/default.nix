@@ -4,6 +4,7 @@
   mkGomod2nixUpdater,
   nix-update-script,
   version,
+  commit,
   src,
   modules,
 }:
@@ -18,7 +19,9 @@ let
   # gitCommit left empty and buildDate pinned to epoch for reproducibility.
   versionLdflags =
     let
-      xFlag = pkg: key: val: "-X '${pkg}.${key}=${val}'";
+      xFlag =
+        pkg: key: val:
+        "-X '${pkg}.${key}=${val}'";
       both = key: val: [
         (xFlag "k8s.io/client-go/pkg/version" key val)
         (xFlag "k8s.io/component-base/version" key val)
@@ -27,7 +30,7 @@ let
     (both "gitVersion" "v${version}")
     ++ (both "gitMajor" (lib.versions.major version))
     ++ (both "gitMinor" (lib.versions.minor version))
-    ++ (both "gitCommit" "")
+    ++ (both "gitCommit" commit)
     ++ (both "gitTreeState" "clean")
     ++ (both "buildDate" "1970-01-01T00:00:00Z");
 
@@ -44,16 +47,15 @@ let
 
         subPackages = [ subPkg ];
         doCheck = false;
-        ldflags =
-          [
-            "-w"
-            "-s"
-          ]
-          ++ versionLdflags
-          ++ lib.optionals static [
-            "-extldflags '-static'"
-            "-installsuffix static"
-          ];
+        ldflags = [
+          "-w"
+          "-s"
+        ]
+        ++ versionLdflags
+        ++ lib.optionals static [
+          "-extldflags '-static'"
+          "-installsuffix static"
+        ];
 
         # goConfigHook (postPatchHooks) replaces vendor/ with gomod2nix's module-mode
         # vendor, which has no "## workspace" header. k8s workspace builds expect

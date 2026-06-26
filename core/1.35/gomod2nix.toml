@@ -46,8 +46,8 @@ schema = 3
     hash = 'sha256-tVNWDUMILZbJvarcl/E7tpSnkn7urqgSHa2Eaka5vSU='
 
   [mod.'github.com/Microsoft/hnslib']
-    version = 'v0.1.1'
-    hash = 'sha256-btcok8vcRBHzAilHsVLF+hbE1vj4tBGtz06dZExSQo4='
+    version = 'v0.1.2'
+    hash = 'sha256-/UVbBy+kWX5kZgEhnY+3fMenk9ULIOlt6sb8t5bObCQ='
 
   [mod.'github.com/NYTimes/gziphandler']
     version = 'v1.1.1'
@@ -550,8 +550,8 @@ schema = 3
     hash = 'sha256-QmZd79LDGFXHsz8zWoskqRNynSF5SK3tWS3oortkJz4='
 
   [mod.'github.com/moby/spdystream']
-    version = 'v0.5.0'
-    hash = 'sha256-9gVkh6e3y75zBlCBhnwO3k+TL8jnRYg+hGYSFJRA42Y='
+    version = 'v0.5.1'
+    hash = 'sha256-2vAgWBcBoG+DRVG+3rHsSnzovw68oTYb0DFozh1uBUI='
 
   [mod.'github.com/moby/sys/atomicwriter']
     version = 'v0.1.0'
@@ -822,8 +822,8 @@ schema = 3
     hash = 'sha256-KDx1qt0zCRqwQ+gwSHYvKWfRQRuiKDvXFDsgiV3YSe8='
 
   [mod.'go.opentelemetry.io/auto/sdk']
-    version = 'v1.1.0'
-    hash = 'sha256-cA9qCCu8P1NSJRxgmpfkfa5rKyn9X+Y/9FSmSd5xjyo='
+    version = 'v1.2.1'
+    hash = 'sha256-73bFYhnxNf4SfeQ52ebnwOWywdQbqc9lWawCcSgofvE='
 
   [mod.'go.opentelemetry.io/contrib/detectors/gcp']
     version = 'v1.34.0'
@@ -846,8 +846,8 @@ schema = 3
     hash = 'sha256-NuGeexwd1k6lBsgJc3Hwfpme2AgkNkfXl1s3P8W15OI='
 
   [mod.'go.opentelemetry.io/otel']
-    version = 'v1.36.0'
-    hash = 'sha256-j8wojdCtKal3LKojanHA8KXXQ0FkbWONpO8tUxpJDko='
+    version = 'v1.41.0'
+    hash = 'sha256-FPVlkljBrDio3rM05uZpVGfcHnS3K9wrpK5d/n9haiY='
 
   [mod.'go.opentelemetry.io/otel/exporters/otlp/otlptrace']
     version = 'v1.34.0'
@@ -862,8 +862,8 @@ schema = 3
     hash = 'sha256-BSvGmEwjufTUxwCeuY9xr+wx44lNdFDTBpwGPuiC5Vk='
 
   [mod.'go.opentelemetry.io/otel/metric']
-    version = 'v1.36.0'
-    hash = 'sha256-z6Uqi4HhUljWIYd58svKK5MqcGbpcac+/M8JeTrUtJ8='
+    version = 'v1.41.0'
+    hash = 'sha256-ewIzb2gPApZcnE6xIi8/k8lfd/38NW5yOAzpOUVVXdk='
 
   [mod.'go.opentelemetry.io/otel/sdk']
     version = 'v1.36.0'
@@ -874,8 +874,8 @@ schema = 3
     hash = 'sha256-kCJXX26+jXz/bFBpnNmFi6r+EusDXsy24tk7FgQbVgA='
 
   [mod.'go.opentelemetry.io/otel/trace']
-    version = 'v1.36.0'
-    hash = 'sha256-owWD9x1lp8aIJqYt058BXPUsIMHdk3RI0escso0BxwA='
+    version = 'v1.41.0'
+    hash = 'sha256-kvVEiONIBtfHxT7u+19EWvLzFj+A4Mvke+/VWmlNAM4='
 
   [mod.'go.opentelemetry.io/proto/otlp']
     version = 'v1.5.0'
@@ -1038,8 +1038,8 @@ schema = 3
     hash = 'sha256-y3vUPJYL6oxu/8c0j4vgX6fzqHtVPSCjfyuWkZYf6+I='
 
   [mod.'sigs.k8s.io/knftables']
-    version = 'v0.0.17'
-    hash = 'sha256-YcV5DZ01DK4MNXvEyjeiOe71YG9GWkU/LNO3nsPqAYc='
+    version = 'v0.0.21'
+    hash = 'sha256-U44cRNoPOrpyzyIjmF8lRT1tDlBnCy7y3+ddfNw3DCY='
 
   [mod.'sigs.k8s.io/kustomize/api']
     version = 'v0.20.1'

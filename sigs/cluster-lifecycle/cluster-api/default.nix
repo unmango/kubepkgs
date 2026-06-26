@@ -5,6 +5,7 @@
   mkGomod2nixUpdater,
   nix-update-script,
   version,
+  commit,
   hash,
   modules,
 }:
@@ -28,6 +29,7 @@ buildGoApplication {
     "-X sigs.k8s.io/cluster-api/version.gitMajor=${lib.versions.major version}"
     "-X sigs.k8s.io/cluster-api/version.gitMinor=${lib.versions.minor version}"
     "-X sigs.k8s.io/cluster-api/version.gitVersion=v${version}"
+    "-X sigs.k8s.io/cluster-api/version.gitCommit=${commit}"
   ];
   passthru = {
     updateScript = nix-update-script { };

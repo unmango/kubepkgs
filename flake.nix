@@ -43,13 +43,16 @@
             gomod2nixPkg = gomod2nix;
           };
 
-          callPackage = lib.callPackageWith ({
-            inherit buildGoApplication callPackage mkGomod2nixUpdater;
-          } // pkgs);
+          callPackage = lib.callPackageWith (
+            {
+              inherit buildGoApplication callPackage mkGomod2nixUpdater;
+            }
+            // pkgs
+          );
 
           mkRelease = callPackage ./mk-release.nix { inherit callPackage; };
 
-          releases = import ./releases.nix;
+          releases = import ./releases.nix { inherit lib; };
           latestVersion = releases.latest;
 
           releaseData = builtins.removeAttrs releases [
@@ -63,6 +66,7 @@
               inherit (info)
                 version
                 srcHash
+                commit
                 modules
                 sigs
                 ;
@@ -84,6 +88,8 @@
 
           packages = {
             default = latest.kube-apiserver;
+            generate-hashes = pkgs.callPackage ./generate-hashes.nix { };
+            fetch-versions = pkgs.callPackage ./fetch-versions.nix { };
           };
 
           devShells.default = pkgs.mkShellNoCC {
@@ -91,6 +97,9 @@
               gnumake
               nixfmt
               gomod2nix
+              gh
+              jq
+              nix-prefetch-github
             ];
           };
 

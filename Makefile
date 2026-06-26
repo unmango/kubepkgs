@@ -39,6 +39,14 @@ check lint:
 format fmt:
 	nix fmt
 
+generate-hashes:
+	nix run '.#generate-hashes'
+
+fetch-versions:
+	nix run '.#fetch-versions'
+
+update-releases: fetch-versions generate-hashes update-all-gomod2nix
+
 update-gomod2nix: PKG ?= $(error PKG is required)
 update-gomod2nix:
 	nix run '.#$(ATTR_$(PKG)).updateGomod2nix'
@@ -48,4 +56,5 @@ update-all-gomod2nix: $(GOMOD2NIX_TARGETS)
 $(GOMOD2NIX_TARGETS): update-gomod2nix-%:
 	nix run '.#$(ATTR_$*).updateGomod2nix'
 
+.PHONY: generate-hashes fetch-versions update-releases
 .PHONY: update-gomod2nix update-all-gomod2nix $(GOMOD2NIX_TARGETS)
