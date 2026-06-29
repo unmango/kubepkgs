@@ -27,8 +27,16 @@ GOMOD2NIX_PKGS := \
 
 GOMOD2NIX_TARGETS := $(addprefix update-gomod2nix-,$(GOMOD2NIX_PKGS))
 
+SYSTEM ?= $(shell nix eval --impure --raw --expr 'builtins.currentSystem')
+BUILD_TARGETS := $(addprefix build-,$(GOMOD2NIX_PKGS))
+
 build:
 	nix build .#
+
+build-all: $(BUILD_TARGETS)
+
+$(BUILD_TARGETS): build-%:
+	nix build '.#legacyPackages.$(SYSTEM).$(ATTR_$*)'
 
 update:
 	nix flake update
@@ -57,4 +65,5 @@ $(GOMOD2NIX_TARGETS): update-gomod2nix-%:
 	nix run '.#$(ATTR_$*).updateGomod2nix'
 
 .PHONY: generate-hashes fetch-versions update-releases
+.PHONY: build build-all $(BUILD_TARGETS)
 .PHONY: update-gomod2nix update-all-gomod2nix $(GOMOD2NIX_TARGETS)
