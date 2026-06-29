@@ -5,6 +5,7 @@
   mkGomod2nixUpdater,
   nix-update-script,
   version,
+  commit,
   hash,
   modules,
 }:

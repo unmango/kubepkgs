@@ -5,6 +5,7 @@
   mkGomod2nixUpdater,
   nix-update-script,
   version,
+  commit,
   hash,
   modules,
 }:
@@ -25,6 +26,7 @@ buildGoApplication {
   ldflags = [
     "-w"
     "-s"
+    "-X k8s.io/client-go/pkg/version.gitCommit=${commit}"
   ];
   passthru = {
     updateScript = nix-update-script { };
