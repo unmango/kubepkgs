@@ -1,13 +1,12 @@
 {
-  buildGoApplication,
+  buildGoModule,
   fetchFromGitHub,
   lib,
-  mkGomod2nixUpdater,
   nix-update-script,
   version,
   commit,
   hash,
-  modules,
+  vendorHash,
 }:
 let
   src = fetchFromGitHub {
@@ -16,11 +15,10 @@ let
     rev = "v${version}";
     inherit hash;
   };
-  majorMinor = "${lib.versions.major version}.${lib.versions.minor version}";
 in
-buildGoApplication {
+buildGoModule {
   pname = "metrics-server";
-  inherit version src modules;
+  inherit version src vendorHash;
   subPackages = [ "cmd/metrics-server" ];
   doCheck = false;
   ldflags = [
@@ -28,13 +26,7 @@ buildGoApplication {
     "-s"
     "-X k8s.io/client-go/pkg/version.gitCommit=${commit}"
   ];
-  passthru = {
-    updateScript = nix-update-script { };
-    updateGomod2nix = mkGomod2nixUpdater {
-      inherit src;
-      outdir = "sigs/instrumentation/metrics-server/${majorMinor}";
-    };
-  };
+  passthru.updateScript = nix-update-script { };
   meta = with lib; {
     description = "Scalable and efficient source of container resource metrics for Kubernetes built-in autoscaling pipelines";
     homepage = "https://github.com/kubernetes-sigs/metrics-server";
