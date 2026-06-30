@@ -10,7 +10,7 @@ let
     in
     {
       version = sigVersion;
-      hash = sigHashes.hash;
+      srcHash = sigHashes.srcHash;
       commit = sigHashes.commit;
       vendorHash = sigHashes.vendorHash;
     };

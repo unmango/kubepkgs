@@ -72,6 +72,7 @@
             default = latest.kube-apiserver;
             generate-hashes = pkgs.callPackage ./generate-hashes.nix { };
             fetch-versions = pkgs.callPackage ./fetch-versions.nix { };
+            update-vendor-hash = pkgs.callPackage ./update-vendor-hash.nix { };
           };
 
           devShells.default = pkgs.mkShellNoCC {

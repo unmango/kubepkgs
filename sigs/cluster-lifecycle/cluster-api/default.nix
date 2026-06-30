@@ -5,7 +5,7 @@
   nix-update-script,
   version,
   commit,
-  hash,
+  srcHash,
   vendorHash,
 }:
 let
@@ -13,7 +13,7 @@ let
     owner = "kubernetes-sigs";
     repo = "cluster-api";
     rev = "v${version}";
-    inherit hash;
+    hash = srcHash;
   };
 in
 buildGoModule {

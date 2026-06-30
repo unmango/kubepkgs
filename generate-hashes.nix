@@ -62,7 +62,7 @@ pkgs.writeShellApplication {
       for sig in cluster-api kube-state-metrics metrics-server external-dns; do
         sig_version="$(echo "$versions" | jq -r ".kubernetes.\"$k8s_minor\".sigs.\"$sig\"")"
         existing_version="$(echo "$hashes" | jq -r ".sigs.\"$sig\".\"$k8s_minor\".version // empty")"
-        existing_hash="$(echo "$hashes" | jq -r ".sigs.\"$sig\".\"$k8s_minor\".hash // empty")"
+        existing_hash="$(echo "$hashes" | jq -r ".sigs.\"$sig\".\"$k8s_minor\".srcHash // empty")"
         existing_commit="$(echo "$hashes" | jq -r ".sigs.\"$sig\".\"$k8s_minor\".commit // empty")"
 
         if [[ "$existing_version" == "$sig_version" && -n "$existing_hash" && -n "$existing_commit" ]]; then
@@ -73,7 +73,13 @@ pkgs.writeShellApplication {
           sig_hash="$(nix-prefetch-github --json --rev "v$sig_version" "$owner" "$sig" | jq -r '.hash')"
           commit="$(fetch_commit "$owner" "$sig" "v$sig_version")"
           hashes="$(echo "$hashes" | jq \
-            ".sigs.\"$sig\".\"$k8s_minor\" = {version: \"$sig_version\", hash: \"$sig_hash\", commit: \"$commit\"}")"
+            --arg version "$sig_version" --arg srcHash "$sig_hash" --arg commit "$commit" \
+            --arg fake "sha256-AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=" \
+            --arg sig "$sig" --arg minor "$k8s_minor" \
+            '.sigs[$sig][$minor] = {
+               version: $version, srcHash: $srcHash, commit: $commit,
+               vendorHash: (.sigs[$sig][$minor].vendorHash // $fake)
+             }')"
         fi
       done
     done < <(echo "$versions" | jq -r '.supported[]')
