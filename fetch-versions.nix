@@ -16,10 +16,18 @@ pkgs.writeShellApplication {
     sig_owner() {
       case "$1" in
         cluster-api)        echo "kubernetes-sigs" ;;
+        cluster-autoscaler) echo "kubernetes" ;;
         kube-state-metrics) echo "kubernetes" ;;
         metrics-server)     echo "kubernetes-sigs" ;;
         external-dns)       echo "kubernetes-sigs" ;;
         *) echo "Unknown SIG: $1" >&2; exit 1 ;;
+      esac
+    }
+
+    sig_repo() {
+      case "$1" in
+        cluster-autoscaler) echo "autoscaler" ;;
+        *) echo "$1" ;;
       esac
     }
 
@@ -30,6 +38,17 @@ pkgs.writeShellApplication {
       gh api "repos/$owner/$repo/releases?per_page=100" \
         --jq "[.[] | select(.prerelease == false and .draft == false)
                | .tag_name | ltrimstr(\"v\")
+               | select(startswith(\"$minor_prefix.\"))]
+              | sort_by(split(\".\")[-1] | tonumber)
+              | last // empty"
+    }
+
+    # For sigs with non-standard tag prefixes (e.g. cluster-autoscaler-1.33.4).
+    latest_patch_prefixed() {
+      local owner="$1" repo="$2" tag_prefix="$3" minor_prefix="$4"
+      gh api "repos/$owner/$repo/releases?per_page=100" \
+        --jq "[.[] | select(.prerelease == false and .draft == false)
+               | .tag_name | ltrimstr(\"$tag_prefix\")
                | select(startswith(\"$minor_prefix.\"))]
               | sort_by(split(\".\")[-1] | tonumber)
               | last // empty"
@@ -49,11 +68,16 @@ pkgs.writeShellApplication {
 
     # Update SIG patch versions within each tracked minor series
     while IFS= read -r k8s_minor; do
-      for sig in cluster-api kube-state-metrics metrics-server external-dns; do
+      for sig in cluster-api cluster-autoscaler kube-state-metrics metrics-server external-dns; do
         current="$(echo "$versions" | jq -r ".kubernetes.\"$k8s_minor\".sigs.\"$sig\"")"
         sig_minor="''${current%.*}"
         owner="$(sig_owner "$sig")"
-        latest="$(latest_patch "$owner" "$sig" "$sig_minor")"
+        repo="$(sig_repo "$sig")"
+        if [[ "$sig" == "cluster-autoscaler" ]]; then
+          latest="$(latest_patch_prefixed "$owner" "$repo" "cluster-autoscaler-" "$sig_minor")"
+        else
+          latest="$(latest_patch "$owner" "$repo" "$sig_minor")"
+        fi
         if [[ -n "$latest" && "$latest" != "$current" ]]; then
           echo "  $sig $k8s_minor: $current -> $latest" >&2
           versions="$(echo "$versions" | jq ".kubernetes.\"$k8s_minor\".sigs.\"$sig\" = \"$latest\"")"

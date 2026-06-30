@@ -32,10 +32,26 @@ pkgs.writeShellApplication {
     sig_owner() {
       case "$1" in
         cluster-api)        echo "kubernetes-sigs" ;;
+        cluster-autoscaler) echo "kubernetes" ;;
         kube-state-metrics) echo "kubernetes" ;;
         metrics-server)     echo "kubernetes-sigs" ;;
         external-dns)       echo "kubernetes-sigs" ;;
         *) echo "Unknown SIG: $1" >&2; exit 1 ;;
+      esac
+    }
+
+    sig_repo() {
+      case "$1" in
+        cluster-autoscaler) echo "autoscaler" ;;
+        *) echo "$1" ;;
+      esac
+    }
+
+    sig_tag() {
+      local sig="$1" version="$2"
+      case "$sig" in
+        cluster-autoscaler) echo "cluster-autoscaler-$version" ;;
+        *) echo "v$version" ;;
       esac
     }
 
@@ -59,21 +75,34 @@ pkgs.writeShellApplication {
 
     # Process SIGs
     while IFS= read -r k8s_minor; do
-      for sig in cluster-api kube-state-metrics metrics-server external-dns; do
+      for sig in cluster-api cluster-autoscaler kube-state-metrics metrics-server external-dns; do
         sig_version="$(echo "$versions" | jq -r ".kubernetes.\"$k8s_minor\".sigs.\"$sig\"")"
         existing_version="$(echo "$hashes" | jq -r ".sigs.\"$sig\".\"$k8s_minor\".version // empty")"
         existing_hash="$(echo "$hashes" | jq -r ".sigs.\"$sig\".\"$k8s_minor\".hash // empty")"
         existing_commit="$(echo "$hashes" | jq -r ".sigs.\"$sig\".\"$k8s_minor\".commit // empty")"
 
+        existing_vendor_hash="$(echo "$hashes" | jq -r ".sigs.\"$sig\".\"$k8s_minor\".vendorHash // empty")"
+
         if [[ "$existing_version" == "$sig_version" && -n "$existing_hash" && -n "$existing_commit" ]]; then
           echo "  $sig $k8s_minor ($sig_version): cached" >&2
         else
           owner="$(sig_owner "$sig")"
+          repo="$(sig_repo "$sig")"
+          tag="$(sig_tag "$sig" "$sig_version")"
           echo "  $sig $k8s_minor ($sig_version): fetching..." >&2
-          sig_hash="$(nix-prefetch-github --json --rev "v$sig_version" "$owner" "$sig" | jq -r '.hash')"
-          commit="$(fetch_commit "$owner" "$sig" "v$sig_version")"
-          hashes="$(echo "$hashes" | jq \
-            ".sigs.\"$sig\".\"$k8s_minor\" = {version: \"$sig_version\", hash: \"$sig_hash\", commit: \"$commit\"}")"
+          sig_hash="$(nix-prefetch-github --json --rev "$tag" "$owner" "$repo" | jq -r '.hash')"
+          commit="$(fetch_commit "$owner" "$repo" "$tag")"
+          new_entry="{version: \"$sig_version\", hash: \"$sig_hash\", commit: \"$commit\"}"
+          # Preserve vendorHash for sigs that use buildGoModule (e.g. cluster-autoscaler)
+          if [[ -n "$existing_vendor_hash" ]]; then
+            new_entry="$new_entry + {vendorHash: \"$existing_vendor_hash\"}"
+          fi
+          hashes="$(echo "$hashes" | jq ".sigs.\"$sig\".\"$k8s_minor\" = ($new_entry)")"
+          # cluster-autoscaler uses buildGoModule and needs a vendorHash computed separately
+          if [[ "$sig" == "cluster-autoscaler" ]]; then
+            echo "  WARNING: $sig $k8s_minor: vendorHash must be recomputed after source update" >&2
+            echo "  Run: nix build '.#legacyPackages.x86_64-linux.kubernetes.\"$k8s_minor\".sigs.$sig'" >&2
+          fi
         fi
       done
     done < <(echo "$versions" | jq -r '.supported[]')

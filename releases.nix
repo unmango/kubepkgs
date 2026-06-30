@@ -5,6 +5,7 @@ let
 
   sigBasePath = {
     cluster-api = ./sigs/cluster-lifecycle/cluster-api;
+    cluster-autoscaler = ./sigs/autoscaling/cluster-autoscaler;
     kube-state-metrics = ./sigs/instrumentation/kube-state-metrics;
     metrics-server = ./sigs/instrumentation/metrics-server;
     external-dns = ./sigs/network/external-dns;
@@ -15,12 +16,18 @@ let
     let
       mm = lib.versions.majorMinor sigVersion;
       sigHashes = hashes.sigs.${sigName}.${k8sMinor};
+      basePath = sigBasePath.${sigName};
     in
     {
       version = sigVersion;
       hash = sigHashes.hash;
       commit = sigHashes.commit;
-      modules = sigBasePath.${sigName} + "/${mm}/gomod2nix.toml";
+    }
+    // lib.optionalAttrs (!(sigHashes ? vendorHash)) {
+      modules = basePath + "/${mm}/gomod2nix.toml";
+    }
+    // lib.optionalAttrs (sigHashes ? vendorHash) {
+      vendorHash = sigHashes.vendorHash;
     };
 
   mkEntry =

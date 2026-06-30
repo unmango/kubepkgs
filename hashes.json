@@ -45,6 +45,32 @@
         "commit": "5757c1c5ddd28861d933277f10fda3aa98538883"
       }
     },
+    "cluster-autoscaler": {
+      "1.33": {
+        "version": "1.33.4",
+        "hash": "sha256-5AXSxSuFpypMuX0y+abWYqsovVd8nA/icD1o5KlaFI0=",
+        "commit": "25fc5c74f6b0f2382b65f76edc08e15ac9f41da7",
+        "vendorHash": "sha256-HLT4gTutCJdOkEqnpYKyVkpLwFVeg8QcEdyfH0OwgF4="
+      },
+      "1.34": {
+        "version": "1.34.3",
+        "hash": "sha256-LOuebNOrjS5hMhKjKs6IGpvPCU20ybhe0qnpJf5YV0I=",
+        "commit": "7a1c0e21cc0cdf943b9149f9b8567c2941da1a13",
+        "vendorHash": "sha256-Iyks8L31rc8NbUAXUcLntRhPbcSR5jutoPaza35DvnA="
+      },
+      "1.35": {
+        "version": "1.35.0",
+        "hash": "sha256-wBGUsKcGJFKxhCl1l8TMHOCfV/+XgNQWdTVMmXUne/I=",
+        "commit": "c1f0b00eab535b09cb976d8d1fad1918e2be787d",
+        "vendorHash": "sha256-30q+0t8k29BK9G8v2GcE11Nv5/jC0+vzhm1TOiwzBSw="
+      },
+      "1.36": {
+        "version": "1.35.0",
+        "hash": "sha256-wBGUsKcGJFKxhCl1l8TMHOCfV/+XgNQWdTVMmXUne/I=",
+        "commit": "c1f0b00eab535b09cb976d8d1fad1918e2be787d",
+        "vendorHash": "sha256-30q+0t8k29BK9G8v2GcE11Nv5/jC0+vzhm1TOiwzBSw="
+      }
+    },
     "kube-state-metrics": {
       "1.33": {
         "version": "2.13.0",
