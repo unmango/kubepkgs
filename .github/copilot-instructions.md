@@ -30,7 +30,7 @@ make build-core-1.36
 make build-cluster-api-1.10
 ```
 
-There is no unit test suite; `doCheck = false` on every derivation. "Testing" a package
+There is no unit test suite; `doCheck = false` for all core + SIG `buildGoApplication` packages. "Testing" a package
 means building it. CI (`.github/workflows/ci.yml`) runs `nix flake check` then
 `nix develop -c make build-all` on every PR/push to `main`.
 
