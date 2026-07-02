@@ -14,7 +14,7 @@ The flake `packages.default` is `latest.kube-apiserver`.
 
 ```bash
 make build                 # nix build .#            (default = latest kube-apiserver)
-make build-all             # build every core + sig package for current system
+make build-all             # build kubectl (per tracked K8s minor) + each tracked SIG package for current system
 make check                 # nix flake check         (also: make lint)
 make fmt                   # nix fmt (treefmt -> nixfmt)   (also: make format)
 make update                # nix flake update
