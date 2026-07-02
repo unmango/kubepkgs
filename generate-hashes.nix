@@ -1,91 +1,60 @@
-{ pkgs }:
-pkgs.writeShellApplication {
+{
+  gh,
+  jq,
+  nix-prefetch-github,
+  writeShellApplication,
+}:
+writeShellApplication {
   name = "generate-hashes";
-  runtimeInputs = with pkgs; [
+
+  runtimeInputs = [
     gh
     jq
     nix-prefetch-github
   ];
-  text = ''
-    REPO_ROOT="$(git rev-parse --show-toplevel)"
-    VERSIONS_JSON="$REPO_ROOT/versions.json"
-    HASHES_JSON="$REPO_ROOT/hashes.json"
-    TMPFILE="$(mktemp)"
-    trap 'rm -f "$TMPFILE"' EXIT
 
-    versions="$(cat "$VERSIONS_JSON")"
-    hashes="$(cat "$HASHES_JSON" 2>/dev/null || echo '{}')"
+  text = ''
+    TARGET="$1"
+    MINOR="$2"
+
+    REPO_ROOT="$(git rev-parse --show-toplevel)"
+    HASHES_JSON="$REPO_ROOT/hashes.json"
+    versions="$(cat "$REPO_ROOT/versions.json")"
+    FAKE="sha256-AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA="
 
     fetch_commit() {
-      local owner="$1" repo="$2" tag="$3"
-      local ref_data type sha
-      ref_data="$(gh api "repos/$owner/$repo/git/refs/tags/$tag")"
-      type="$(echo "$ref_data" | jq -r '.object.type')"
-      sha="$(echo "$ref_data" | jq -r '.object.sha')"
-      if [[ "$type" == "tag" ]]; then
-        # Annotated tag: dereference to commit
-        sha="$(gh api "repos/$owner/$repo/git/tags/$sha" | jq -r '.object.sha')"
-      fi
-      echo "$sha"
-    }
-
-    sig_owner() {
-      case "$1" in
-        cluster-api)        echo "kubernetes-sigs" ;;
-        kube-state-metrics) echo "kubernetes" ;;
-        metrics-server)     echo "kubernetes-sigs" ;;
-        external-dns)       echo "kubernetes-sigs" ;;
-        *) echo "Unknown SIG: $1" >&2; exit 1 ;;
-      esac
-    }
-
-    # Process kubernetes core
-    while IFS= read -r k8s_minor; do
-      k8s_version="$(echo "$versions" | jq -r ".kubernetes.\"$k8s_minor\".version")"
-      existing_version="$(echo "$hashes" | jq -r ".kubernetes.\"$k8s_minor\".version // empty")"
-      existing_hash="$(echo "$hashes" | jq -r ".kubernetes.\"$k8s_minor\".srcHash // empty")"
-      existing_commit="$(echo "$hashes" | jq -r ".kubernetes.\"$k8s_minor\".commit // empty")"
-
-      if [[ "$existing_version" == "$k8s_version" && -n "$existing_hash" && -n "$existing_commit" ]]; then
-        echo "kubernetes $k8s_minor ($k8s_version): cached" >&2
+      local ref_data
+      ref_data="$(gh api "repos/$1/$2/git/refs/tags/$3")"
+      if [[ "$(echo "$ref_data" | jq -r '.object.type')" == "tag" ]]; then
+        gh api "repos/$1/$2/git/tags/$(echo "$ref_data" | jq -r '.object.sha')" | jq -r '.object.sha'
       else
-        echo "kubernetes $k8s_minor ($k8s_version): fetching..." >&2
-        src_hash="$(nix-prefetch-github --json --rev "v$k8s_version" kubernetes kubernetes | jq -r '.hash')"
-        commit="$(fetch_commit kubernetes kubernetes "v$k8s_version")"
-        hashes="$(echo "$hashes" | jq \
-          ".kubernetes.\"$k8s_minor\" = {version: \"$k8s_version\", srcHash: \"$src_hash\", commit: \"$commit\"}")"
+        echo "$ref_data" | jq -r '.object.sha'
       fi
-    done < <(echo "$versions" | jq -r '.supported[]')
+    }
 
-    # Process SIGs
-    while IFS= read -r k8s_minor; do
-      for sig in cluster-api kube-state-metrics metrics-server external-dns; do
-        sig_version="$(echo "$versions" | jq -r ".kubernetes.\"$k8s_minor\".sigs.\"$sig\"")"
-        existing_version="$(echo "$hashes" | jq -r ".sigs.\"$sig\".\"$k8s_minor\".version // empty")"
-        existing_hash="$(echo "$hashes" | jq -r ".sigs.\"$sig\".\"$k8s_minor\".srcHash // empty")"
-        existing_commit="$(echo "$hashes" | jq -r ".sigs.\"$sig\".\"$k8s_minor\".commit // empty")"
+    if [[ "$TARGET" == "kubernetes" ]]; then
+      owner="kubernetes"; repo="kubernetes"
+      version="$(echo "$versions" | jq -r ".kubernetes.\"$MINOR\".version")"
+      path=".kubernetes.\"$MINOR\""
+      vendor="{}"
+    else
+      case "$TARGET" in
+        kube-state-metrics) owner="kubernetes" ;;
+        cluster-api|metrics-server|external-dns) owner="kubernetes-sigs" ;;
+        *) exit 1 ;;
+      esac
+      repo="$TARGET"
+      version="$(echo "$versions" | jq -r ".kubernetes.\"$MINOR\".sigs.\"$TARGET\"")"
+      path=".sigs.\"$TARGET\".\"$MINOR\""
+      vendor="{vendorHash: ($path.vendorHash // \$fake)}"
+    fi
 
-        if [[ "$existing_version" == "$sig_version" && -n "$existing_hash" && -n "$existing_commit" ]]; then
-          echo "  $sig $k8s_minor ($sig_version): cached" >&2
-        else
-          owner="$(sig_owner "$sig")"
-          echo "  $sig $k8s_minor ($sig_version): fetching..." >&2
-          sig_hash="$(nix-prefetch-github --json --rev "v$sig_version" "$owner" "$sig" | jq -r '.hash')"
-          commit="$(fetch_commit "$owner" "$sig" "v$sig_version")"
-          hashes="$(echo "$hashes" | jq \
-            --arg version "$sig_version" --arg srcHash "$sig_hash" --arg commit "$commit" \
-            --arg fake "sha256-AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=" \
-            --arg sig "$sig" --arg minor "$k8s_minor" \
-            '.sigs[$sig][$minor] = {
-               version: $version, srcHash: $srcHash, commit: $commit,
-               vendorHash: (.sigs[$sig][$minor].vendorHash // $fake)
-             }')"
-        fi
-      done
-    done < <(echo "$versions" | jq -r '.supported[]')
+    src_hash="$(nix-prefetch-github --json --rev "v$version" "$owner" "$repo" | jq -r '.hash')"
+    commit="$(fetch_commit "$owner" "$repo" "v$version")"
 
-    echo "$hashes" | jq '{_comment: "Generated by make generate-hashes. Do not edit manually."} + .' > "$TMPFILE"
-    mv "$TMPFILE" "$HASHES_JSON"
-    echo "Wrote $HASHES_JSON" >&2
+    jq --arg v "$version" --arg s "$src_hash" --arg c "$commit" --arg fake "$FAKE" \
+      "$path = {version: \$v, srcHash: \$s, commit: \$c} + $vendor" \
+      "$HASHES_JSON" > "$HASHES_JSON.tmp"
+    mv "$HASHES_JSON.tmp" "$HASHES_JSON"
   '';
 }

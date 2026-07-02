@@ -68,7 +68,11 @@ format fmt:
 	nix fmt
 
 generate-hashes:
-	nix run '.#generate-hashes'
+	@for minor in $$(jq -r '.supported[]' versions.json); do \
+	  for target in kubernetes cluster-api kube-state-metrics metrics-server external-dns; do \
+	    nix run '.#generate-hashes' -- $$target $$minor; \
+	  done; \
+	done
 
 fetch-versions:
 	nix run '.#fetch-versions'
