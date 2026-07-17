@@ -29,14 +29,7 @@
           ...
         }:
         let
-          callPackage = lib.callPackageWith (
-            {
-              inherit callPackage;
-            }
-            // pkgs
-          );
-
-          mkRelease = callPackage ./mk-release.nix { inherit callPackage; };
+          mkRelease = pkgs.callPackage ./mk-release.nix { };
 
           releases = import ./releases.nix { inherit lib; };
           latestVersion = releases.latest;
@@ -74,6 +67,12 @@
             fetch-versions = pkgs.callPackage ./fetch-versions.nix { };
             update-vendor-hash = pkgs.callPackage ./update-vendor-hash.nix { };
           };
+
+          checks =
+            (lib.mapAttrs' (n: lib.nameValuePair "core-${n}") (
+              lib.filterAttrs (_: lib.isDerivation) (removeAttrs latest [ "sigs" ])
+            ))
+            // (lib.mapAttrs' (n: lib.nameValuePair "sig-${n}") latest.sigs);
 
           devShells.default = pkgs.mkShellNoCC {
             packages = with pkgs; [

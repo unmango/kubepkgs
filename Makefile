@@ -33,22 +33,18 @@ VENDOR_HASH_PKGS := \
 
 VENDOR_HASH_TARGETS := $(addprefix update-vendor-hash-,$(VENDOR_HASH_PKGS))
 
-BUILD_PKGS := \
+CORE_PKGS := \
 	core-1.33 \
 	core-1.34 \
 	core-1.35 \
-	core-1.36 \
-	cluster-api-1.8 \
-	cluster-api-1.9 \
-	cluster-api-1.10 \
-	kube-state-metrics-2.13 \
-	kube-state-metrics-2.14 \
-	metrics-server-0.7 \
-	external-dns-0.14 \
-	external-dns-0.15
+	core-1.36
+
+BUILD_PKGS := $(CORE_PKGS) $(VENDOR_HASH_PKGS)
 
 SYSTEM ?= $(shell nix eval --impure --raw --expr 'builtins.currentSystem')
 BUILD_TARGETS := $(addprefix build-,$(BUILD_PKGS))
+
+.DEFAULT_GOAL := build
 
 build:
 	nix build .#
@@ -78,8 +74,7 @@ fetch-versions:
 	nix run '.#fetch-versions'
 
 update-vendor-hash: PKG ?= $(error PKG is required)
-update-vendor-hash:
-	nix run '.#update-vendor-hash' -- $(VENDOR_HASH_ARGS_$(PKG))
+update-vendor-hash: update-vendor-hash-$(PKG)
 
 update-all-vendor-hashes: $(VENDOR_HASH_TARGETS)
 
@@ -90,4 +85,4 @@ update-releases: fetch-versions generate-hashes update-all-vendor-hashes
 
 .PHONY: generate-hashes fetch-versions update-releases
 .PHONY: update-vendor-hash update-all-vendor-hashes $(VENDOR_HASH_TARGETS)
-.PHONY: build build-all $(BUILD_TARGETS)
+.PHONY: build build-all update check lint format fmt $(BUILD_TARGETS)

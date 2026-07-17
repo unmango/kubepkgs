@@ -29,40 +29,39 @@ let
 
   mkBin =
     pname: subPkg: static: extraMeta:
-    buildGoModule (
-      {
-        inherit pname version src;
+    buildGoModule ({
+      inherit pname version src;
 
-        # K8s ships a complete vendor/ dir. Use it directly; no download needed.
-        # GOWORK=off: go.work at repo root conflicts with -mod=vendor in Go 1.22+.
-        vendorHash = null;
-        GOWORK = "off";
+      # K8s ships a complete vendor/ dir, generated in workspace mode (vendor/modules.txt
+      # starts with "## workspace"). Leave GOWORK on so -mod=vendor resolves against it;
+      # forcing GOWORK=off makes go's vendor consistency check fail against the workspace-style
+      # vendor/modules.txt (replace directives get flagged as "not marked as replaced").
+      vendorHash = null;
 
-        subPackages = [ subPkg ];
-        doCheck = false;
-        ldflags = [
-          "-w"
-          "-s"
-        ]
-        ++ versionLdflags
-        ++ lib.optionals static [
-          "-extldflags '-static'"
-          "-installsuffix static"
-        ];
+      subPackages = [ subPkg ];
+      doCheck = false;
+      ldflags = [
+        "-w"
+        "-s"
+      ]
+      ++ versionLdflags
+      ++ lib.optionals static [
+        "-extldflags '-static'"
+        "-installsuffix static"
+      ];
 
-        passthru.updateScript = nix-update-script { };
+      passthru.updateScript = nix-update-script { };
 
-        meta =
-          with lib;
-          {
-            homepage = "https://kubernetes.io";
-            license = licenses.asl20;
-            maintainers = with maintainers; [ UnstoppableMango ];
-          }
-          // extraMeta;
-        env = lib.optionalAttrs static { CGO_ENABLED = "0"; };
-      }
-    );
+      meta =
+        with lib;
+        {
+          homepage = "https://kubernetes.io";
+          license = licenses.asl20;
+          maintainers = with maintainers; [ UnstoppableMango ];
+        }
+        // extraMeta;
+      env = lib.optionalAttrs static { CGO_ENABLED = "0"; };
+    });
 in
 {
   # kubectl is NOT in KUBE_STATIC_BINARIES — dynamically linked on Linux.

@@ -25,7 +25,7 @@ writeShellApplication {
 
     BAK="$HASHES_JSON.bak"
     cp "$HASHES_JSON" "$BAK"
-    trap 'mv "$BAK" "$HASHES_JSON"' ERR INT TERM
+    trap 'mv "$BAK" "$HASHES_JSON"' INT TERM
 
     jq --arg sig "$SIG" --arg minor "$BUILD_MINOR" --arg h "$FAKE" \
       '.sigs[$sig][$minor].vendorHash = $h' "$BAK" > "$HASHES_JSON"
@@ -36,6 +36,8 @@ writeShellApplication {
 
     got=$(printf '%s\n' "$output" | grep 'got:' | grep -oE 'sha256-[A-Za-z0-9+/=]+' | head -1)
     [ -n "$got" ] || { mv "$BAK" "$HASHES_JSON"; exit 1; }
+
+    trap 'mv "$BAK" "$HASHES_JSON"' ERR
 
     minors=$(printf '%s\n' "''${UPDATE_MINORS[@]}" | jq -R . | jq -s .)
     jq --arg sig "$SIG" --arg hash "$got" --argjson minors "$minors" \
