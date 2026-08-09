@@ -29,8 +29,8 @@ make fetch-versions
 # Regenerate hashes.json entries for all supported minors
 make generate-hashes
 
-# Regenerate the vendor hash for one package (PKG= one of the ATTR_/VENDOR_HASH_PKGS values below)
-make update-vendor-hash PKG=core-1.36
+# Regenerate the vendor hash for one SIG package (PKG= one of the VENDOR_HASH_PKGS values below)
+make update-vendor-hash PKG=cluster-api-1.10
 
 # Regenerate vendor hashes for all packages
 make update-all-vendor-hashes
@@ -50,7 +50,9 @@ nix build '.#legacyPackages.x86_64-linux.kubernetes."1.33".sigs.cluster-api'
 
 ## Architecture
 
-**`releases.nix`** — single source of truth. Declares each supported K8s minor version with `srcHash`, `version`, and per-SIG `{ version, hash, modules }` entries. Add new versions here first.
+**`versions.json` + `hashes.json`** — source of truth for tracked versions and pinned hashes (`srcHash`, `commit`, and SIG `vendorHash`).
+
+**`releases.nix`** — derives release entries from `versions.json`/`hashes.json`, wiring per-minor core and SIG metadata used by builds.
 
 **`mk-release.nix`** — takes one release entry from `releases.nix`, fetches the kubernetes/kubernetes source, calls `core/default.nix` for core binaries, then calls each SIG `default.nix` for the sigs set.
 

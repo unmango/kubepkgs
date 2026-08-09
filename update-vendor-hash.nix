@@ -1,4 +1,7 @@
 {
+  coreutils,
+  git,
+  gnugrep,
   jq,
   nix,
   writeShellApplication,
@@ -7,6 +10,9 @@ writeShellApplication {
   name = "update-vendor-hash";
 
   runtimeInputs = [
+    coreutils
+    git
+    gnugrep
     nix
     jq
   ];
