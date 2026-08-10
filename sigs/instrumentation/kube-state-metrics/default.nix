@@ -1,26 +1,24 @@
 {
-  buildGoApplication,
+  buildGoModule,
   fetchFromGitHub,
   lib,
-  mkGomod2nixUpdater,
   nix-update-script,
   version,
   commit,
-  hash,
-  modules,
+  srcHash,
+  vendorHash,
 }:
 let
   src = fetchFromGitHub {
     owner = "kubernetes";
     repo = "kube-state-metrics";
     rev = "v${version}";
-    inherit hash;
+    hash = srcHash;
   };
-  majorMinor = "${lib.versions.major version}.${lib.versions.minor version}";
 in
-buildGoApplication {
+buildGoModule {
   pname = "kube-state-metrics";
-  inherit version src modules;
+  inherit version src vendorHash;
   subPackages = [ "." ];
   doCheck = false;
   ldflags = [
@@ -28,13 +26,7 @@ buildGoApplication {
     "-s"
     "-X github.com/prometheus/common/version.Revision=${commit}"
   ];
-  passthru = {
-    updateScript = nix-update-script { };
-    updateGomod2nix = mkGomod2nixUpdater {
-      inherit src;
-      outdir = "sigs/instrumentation/kube-state-metrics/${majorMinor}";
-    };
-  };
+  passthru.updateScript = nix-update-script { };
   meta = with lib; {
     description = "Add-on agent to generate and expose cluster-level metrics from the Kubernetes API";
     homepage = "https://github.com/kubernetes/kube-state-metrics";

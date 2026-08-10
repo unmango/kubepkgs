@@ -1,26 +1,24 @@
 {
-  buildGoApplication,
+  buildGoModule,
   fetchFromGitHub,
   lib,
-  mkGomod2nixUpdater,
   nix-update-script,
   version,
   commit,
-  hash,
-  modules,
+  srcHash,
+  vendorHash,
 }:
 let
   src = fetchFromGitHub {
     owner = "kubernetes-sigs";
     repo = "cluster-api";
     rev = "v${version}";
-    inherit hash;
+    hash = srcHash;
   };
-  majorMinor = "${lib.versions.major version}.${lib.versions.minor version}";
 in
-buildGoApplication {
+buildGoModule {
   pname = "cluster-api";
-  inherit version src modules;
+  inherit version src vendorHash;
   subPackages = [ "cmd/clusterctl" ];
   doCheck = false;
   ldflags = [
@@ -31,13 +29,7 @@ buildGoApplication {
     "-X sigs.k8s.io/cluster-api/version.gitVersion=v${version}"
     "-X sigs.k8s.io/cluster-api/version.gitCommit=${commit}"
   ];
-  passthru = {
-    updateScript = nix-update-script { };
-    updateGomod2nix = mkGomod2nixUpdater {
-      inherit src;
-      outdir = "sigs/cluster-lifecycle/cluster-api/${majorMinor}";
-    };
-  };
+  passthru.updateScript = nix-update-script { };
   meta = with lib; {
     description = "Declarative APIs and tooling for provisioning, upgrading, and operating Kubernetes clusters";
     homepage = "https://cluster-api.sigs.k8s.io";
