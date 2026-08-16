@@ -24,6 +24,14 @@ buildGoApplication {
     ];
   };
   modules = ../tools/update/gomod2nix.toml;
+  # subPackages above restricts the default checkPhase to cmd/kubepkgs-update
+  # (which has no tests); run the full suite explicitly instead.
+  checkPhase = ''
+    runHook preCheck
+    export GOFLAGS=''${GOFLAGS//-trimpath/}
+    go test ./...
+    runHook postCheck
+  '';
   nativeBuildInputs = [ makeWrapper ];
   postFixup = ''
     wrapProgram $out/bin/kubepkgs-update \

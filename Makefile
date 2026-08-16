@@ -55,11 +55,12 @@ format fmt:
 fetch-versions:
 	nix run '.#update' -- fetch-versions
 
-hashes.json: versions.json
+.PHONY: generate-hashes
+generate-hashes:
 	nix run '.#update' -- generate-hashes
 
-.PHONY: generate-hashes
-generate-hashes: hashes.json
+hashes.json: versions.json
+	nix run '.#update' -- generate-hashes
 
 update-vendor-hash: PKG ?=
 update-vendor-hash: hashes.json

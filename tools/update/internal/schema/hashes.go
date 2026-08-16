@@ -22,7 +22,7 @@ type CoreHash struct {
 
 // SigHash is the hashes.json value for one SIG at one Kubernetes minor.
 // Field order (version, commit, vendorHash, srcHash) intentionally differs
-// from CoreHash's (version, srcHash, commit) — matches the existing file.
+// from CoreHash's (version, srcHash, commit), matching the existing file.
 type SigHash struct {
 	Version    string `json:"version"`
 	Commit     string `json:"commit"`

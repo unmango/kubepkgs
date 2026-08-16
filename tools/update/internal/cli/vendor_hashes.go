@@ -49,6 +49,9 @@ func runVendorHashes(ctx context.Context, root string, sigFilter []string, minor
 	}
 
 	groups := filterGroups(grouping.DeriveGroups(versions), sigFilter, minorFilter)
+	if len(groups) == 0 && (len(sigFilter) > 0 || minorFilter != "") {
+		return fmt.Errorf("vendor-hashes: no groups matched sig=%v minor=%q", sigFilter, minorFilter)
+	}
 
 	if printGroups {
 		for _, g := range groups {
@@ -149,5 +152,9 @@ func resolveGroup(ctx context.Context, hashesPath string, allMinors []string, sy
 		entry.VendorHash = hash
 		hashes.Sigs[g.Sig][m] = entry
 	}
-	return schema.SaveHashes(hashesPath, hashes, allMinors)
+	if err := schema.SaveHashes(hashesPath, hashes, allMinors); err != nil {
+		restore()
+		return err
+	}
+	return nil
 }

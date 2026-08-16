@@ -59,6 +59,11 @@
           ) releaseData;
 
           latest = versionedSets.${latestVersion};
+
+          update = pkgs.callPackage ./nix/updater.nix {
+            inherit (inputs'.gomod2nix.legacyPackages) buildGoApplication;
+            globset = inputs.globset;
+          };
         in
         {
           legacyPackages.kubernetes = versionedSets // {
@@ -67,17 +72,17 @@
 
           packages = {
             default = latest.kube-apiserver;
-            update = pkgs.callPackage ./nix/updater.nix {
-              inherit (inputs'.gomod2nix.legacyPackages) buildGoApplication;
-              globset = inputs.globset;
-            };
+            inherit update;
           };
 
           checks =
             (lib.mapAttrs' (n: lib.nameValuePair "core-${n}") (
               lib.filterAttrs (_: lib.isDerivation) (removeAttrs latest [ "sigs" ])
             ))
-            // (lib.mapAttrs' (n: lib.nameValuePair "sig-${n}") latest.sigs);
+            // (lib.mapAttrs' (n: lib.nameValuePair "sig-${n}") latest.sigs)
+            // {
+              inherit update;
+            };
 
           devShells.default = pkgs.mkShellNoCC {
             packages = with pkgs; [
