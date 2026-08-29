@@ -29,17 +29,20 @@ make fetch-versions
 # Regenerate hashes.json entries for all supported minors
 make generate-hashes
 
-# Regenerate the vendor hash for one SIG package (PKG= one of the VENDOR_HASH_PKGS values below)
-make update-vendor-hash PKG=cluster-api-1.10
+# Regenerate the vendor hash for one SIG (PKG= one of: cluster-api, kube-state-metrics, metrics-server, external-dns)
+# Resolves every group for that SIG (i.e. every distinct version it has across supported minors).
+# For a single group only, use `nix run .#update -- vendor-hashes --sig <sig> --minor <build-minor>` directly.
+make update-vendor-hash PKG=cluster-api
 
-# Regenerate vendor hashes for all packages
+# Regenerate vendor hashes for all SIGs
 make update-all-vendor-hashes
 
-# Run fetch-versions + generate-hashes + update-all-vendor-hashes
+# Run fetch-versions + update-all-vendor-hashes (hashes.json regenerates automatically
+# as a dependency of update-all-vendor-hashes if versions.json changed)
 make update-releases
 ```
 
-Valid `PKG` values: `core-1.33`, `core-1.34`, `core-1.35`, `core-1.36`, `cluster-api-1.8`, `cluster-api-1.9`, `cluster-api-1.10`, `kube-state-metrics-2.13`, `kube-state-metrics-2.14`, `metrics-server-0.7`, `external-dns-0.14`, `external-dns-0.15`.
+`ATTR_*`/`CORE_PKGS`/`build-<pkg>` in the `Makefile` still use pseudo-ids like `core-1.33`, `cluster-api-1.10`, etc. Those are unrelated to `PKG` above and unchanged; see `make build-all`.
 
 Build a specific package directly:
 
@@ -50,34 +53,38 @@ nix build '.#legacyPackages.x86_64-linux.kubernetes."1.33".sigs.cluster-api'
 
 ## Architecture
 
-**`versions.json` + `hashes.json`** — source of truth for tracked versions and pinned hashes (`srcHash`, `commit`, and SIG `vendorHash`).
+**`versions.json` + `hashes.json`**: source of truth for tracked versions and pinned hashes (`srcHash`, `commit`, and SIG `vendorHash`).
 
-**`releases.nix`** — derives release entries from `versions.json`/`hashes.json`, wiring per-minor core and SIG metadata used by builds.
+**`releases.nix`**: derives release entries from `versions.json`/`hashes.json`, wiring per-minor core and SIG metadata used by builds.
 
-**`mk-release.nix`** — takes one release entry from `releases.nix`, fetches the kubernetes/kubernetes source, calls `core/default.nix` for core binaries, then calls each SIG `default.nix` for the sigs set.
+**`mk-release.nix`**: takes one release entry from `releases.nix`, fetches the kubernetes/kubernetes source, calls `core/default.nix` for core binaries, then calls each SIG `default.nix` for the sigs set.
 
-**`flake.nix`** — maps `releases.nix` through `mkRelease` to produce `legacyPackages.kubernetes`, wires up `treefmt` (nixfmt), exposes `checks` that build every `latest` core binary and SIG package, and exposes `devShells.default` (gnumake + nixfmt + gh + jq + nix-prefetch-github).
+**`flake.nix`**: maps `releases.nix` through `mkRelease` to produce `legacyPackages.kubernetes`, wires up `treefmt` (nixfmt), exposes `checks` that build every `latest` core binary and SIG package, exposes the `update` package (`nix/updater.nix`, the `tools/update` Go CLI packaged via `gomod2nix`'s `buildGoApplication`), and exposes `devShells.default` (gnumake + nixfmt + nix-prefetch-github + go + the `gomod2nix` CLI).
 
-**`core/default.nix`** — builds all core K8s binaries via a shared `mkBin` helper using `buildGoModule`, with `vendorHash = null` against K8s's own vendored `vendor/` dir (no download needed). `vendor/modules.txt` is workspace-generated (`## workspace` header) so `GOWORK` must stay on (default) — forcing it off breaks Go's vendor consistency check against the workspace-style modules.txt.
+**`tools/update/`**: first-party Go module implementing the version/hash update lifecycle (`fetch-versions`, `generate-hashes`, `vendor-hashes` cobra subcommands of a single `kubepkgs-update` binary), replacing the previous shell-based `fetch-versions.nix`/`generate-hashes.nix`/`update-vendor-hash.nix`. Packaged separately from core/sigs via `gomod2nix`/`buildGoApplication` (unrelated to the `buildGoModule` setup used for core/sigs, that migration, per commit `5025cf4`, is settled and unaffected by this).
 
-**`sigs/<category>/<project>/default.nix`** — each SIG package fetches its own GitHub source and builds with `buildGoModule` against a real `vendorHash`.
+**`nix/updater.nix`**: the `buildGoApplication` derivation for `tools/update`; filters `src` down to `go.mod`/`go.sum`/`**/*.go`/`**/testdata/**` via the `globset` flake input + `lib.fileset.toSource`, so unrelated file changes in `tools/update` don't trigger a rebuild.
 
-**`versions.json`** — supported K8s minors and, per minor, the upstream version for each package (k8s core + sigs).
+**`core/default.nix`**: builds all core K8s binaries via a shared `mkBin` helper using `buildGoModule`, with `vendorHash = null` against K8s's own vendored `vendor/` dir (no download needed). `vendor/modules.txt` is workspace-generated (`## workspace` header) so `GOWORK` must stay on (default); forcing it off breaks Go's vendor consistency check against the workspace-style modules.txt.
 
-**`hashes.json`** — per package per minor: `srcHash`, `commit`, and (for sigs) `vendorHash`. Populated by the `fetch-versions`/`generate-hashes`/`update-vendor-hash` flake packages (wrapped by the Makefile targets above) and consumed by `releases.nix`.
+**`sigs/<category>/<project>/default.nix`**: each SIG package fetches its own GitHub source and builds with `buildGoModule` against a real `vendorHash`.
+
+**`versions.json`**: supported K8s minors and, per minor, the upstream version for each package (k8s core + sigs).
+
+**`hashes.json`**: per package per minor: `srcHash`, `commit`, and (for sigs) `vendorHash`. Populated by the `tools/update` Go CLI's `generate-hashes`/`vendor-hashes` subcommands (the `update` flake package, wrapped by the Makefile targets above) and consumed by `releases.nix`.
 
 ## Adding a new Kubernetes version
 
 1. Add the minor to `versions.json` (or run `make fetch-versions` if it's now the latest upstream release).
-2. Run `make generate-hashes` and `make update-all-vendor-hashes` (or `make update-releases` to run the whole fetch/generate/hash flow).
-3. Add `ATTR_` entries and a `CORE_PKGS`/`VENDOR_HASH_PKGS`/`VENDOR_HASH_ARGS_` entry to `Makefile` for the new minor.
+2. Run `make generate-hashes` and `make update-all-vendor-hashes` (or `make update-releases` to run the whole fetch/generate/hash flow). Vendor-hash grouping is derived automatically from `versions.json` (no per-minor mapping to hand-maintain).
+3. Add `ATTR_` and a `CORE_PKGS` entry to `Makefile` for the new minor.
 
 ## Adding a new SIG package
 
 1. Create `sigs/<category>/<project>/default.nix` following the pattern of existing SIG packages.
 2. Wire it into `mk-release.nix` under the `sigs` attrset.
 3. Add `sigs.<project>` entries to relevant versions in `releases.nix`.
-4. Add `ATTR_` and `VENDOR_HASH_PKGS`/`VENDOR_HASH_ARGS_` entries to `Makefile`.
+4. Add `ATTR_` and `VENDOR_HASH_PKGS` entries to `Makefile` (used by `build-<pkg>`; vendor-hash resolution itself needs no per-package entry).
 
 ## Dev environment
 

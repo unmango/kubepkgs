@@ -1,0 +1,75 @@
+package ghclient_test
+
+import (
+	"context"
+	"fmt"
+	"net/http"
+	"net/http/httptest"
+
+	. "github.com/onsi/ginkgo/v2"
+	. "github.com/onsi/gomega"
+
+	"github.com/unmango/kubepkgs/tools/update/internal/ghclient"
+)
+
+const releasesJSON = `[
+  {"tag_name": "v1.34.9", "draft": false, "prerelease": false},
+  {"tag_name": "v1.34.8", "draft": false, "prerelease": false},
+  {"tag_name": "v1.34.10", "draft": false, "prerelease": true},
+  {"tag_name": "v1.34.11", "draft": true, "prerelease": false},
+  {"tag_name": "v1.35.0", "draft": false, "prerelease": false}
+]`
+
+var _ = Describe("LatestPatch", func() {
+	var (
+		server *httptest.Server
+		client *ghclient.Client
+		hits   int
+	)
+
+	BeforeEach(func() {
+		hits = 0
+		mux := http.NewServeMux()
+		mux.HandleFunc("/repos/kubernetes/kubernetes/releases", func(w http.ResponseWriter, r *http.Request) {
+			hits++
+			w.Header().Set("Content-Type", "application/json")
+			fmt.Fprint(w, releasesJSON)
+		})
+		server = httptest.NewServer(mux)
+
+		var err error
+		client, err = ghclient.NewWithHTTPClient(server.Client(), server.URL+"/")
+		Expect(err).NotTo(HaveOccurred())
+	})
+
+	AfterEach(func() {
+		server.Close()
+	})
+
+	It("picks the highest non-draft, non-prerelease patch in the minor series", func() {
+		latest, err := client.LatestPatch(context.Background(), "kubernetes", "kubernetes", "1.34")
+		Expect(err).NotTo(HaveOccurred())
+		Expect(latest).To(Equal("1.34.9"))
+	})
+
+	It("excludes prereleases and drafts even if numerically higher", func() {
+		latest, err := client.LatestPatch(context.Background(), "kubernetes", "kubernetes", "1.34")
+		Expect(err).NotTo(HaveOccurred())
+		Expect(latest).NotTo(Equal("1.34.10"))
+		Expect(latest).NotTo(Equal("1.34.11"))
+	})
+
+	It("returns empty for a minor series with no matching releases", func() {
+		latest, err := client.LatestPatch(context.Background(), "kubernetes", "kubernetes", "1.99")
+		Expect(err).NotTo(HaveOccurred())
+		Expect(latest).To(Equal(""))
+	})
+
+	It("caches the release list across repeated calls for the same repo", func() {
+		_, err := client.LatestPatch(context.Background(), "kubernetes", "kubernetes", "1.34")
+		Expect(err).NotTo(HaveOccurred())
+		_, err = client.LatestPatch(context.Background(), "kubernetes", "kubernetes", "1.35")
+		Expect(err).NotTo(HaveOccurred())
+		Expect(hits).To(Equal(1))
+	})
+})

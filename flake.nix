@@ -4,6 +4,7 @@
   inputs = {
     nixpkgs.url = "github:nixos/nixpkgs?ref=nixos-unstable";
     systems.url = "github:nix-systems/default";
+    globset.url = "github:pdtpartners/globset";
 
     flake-parts = {
       url = "github:hercules-ci/flake-parts";
@@ -12,6 +13,11 @@
 
     treefmt-nix = {
       url = "github:numtide/treefmt-nix";
+      inputs.nixpkgs.follows = "nixpkgs";
+    };
+
+    gomod2nix = {
+      url = "github:nix-community/gomod2nix";
       inputs.nixpkgs.follows = "nixpkgs";
     };
   };
@@ -26,6 +32,7 @@
         {
           pkgs,
           lib,
+          inputs',
           ...
         }:
         let
@@ -52,35 +59,38 @@
           ) releaseData;
 
           latest = versionedSets.${latestVersion};
+
+          update = pkgs.callPackage ./nix/updater.nix {
+            inherit (inputs'.gomod2nix.legacyPackages) buildGoApplication;
+            globset = inputs.globset;
+          };
         in
         {
-          # Versioned package sets: legacyPackages.kubernetes."1.36".kubectl
-          #                         legacyPackages.kubernetes."1.36".sigs.cluster-api
-          #                         legacyPackages.kubernetes.latest.kubectl
           legacyPackages.kubernetes = versionedSets // {
             inherit latest;
           };
 
           packages = {
             default = latest.kube-apiserver;
-            generate-hashes = pkgs.callPackage ./generate-hashes.nix { };
-            fetch-versions = pkgs.callPackage ./fetch-versions.nix { };
-            update-vendor-hash = pkgs.callPackage ./update-vendor-hash.nix { };
+            inherit update;
           };
 
           checks =
             (lib.mapAttrs' (n: lib.nameValuePair "core-${n}") (
               lib.filterAttrs (_: lib.isDerivation) (removeAttrs latest [ "sigs" ])
             ))
-            // (lib.mapAttrs' (n: lib.nameValuePair "sig-${n}") latest.sigs);
+            // (lib.mapAttrs' (n: lib.nameValuePair "sig-${n}") latest.sigs)
+            // {
+              inherit update;
+            };
 
           devShells.default = pkgs.mkShellNoCC {
             packages = with pkgs; [
               gnumake
               nixfmt
-              gh
-              jq
               nix-prefetch-github
+              go
+              inputs'.gomod2nix.packages.default
             ];
           };
 

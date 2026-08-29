@@ -7,7 +7,7 @@
 > [!WARNING]
 > This project is a work in progress. Expect breaking changes.
 
-Nix flake exposing versioned Kubernetes package sets. Each Kubernetes minor version ships a package set containing core binaries and selected SIG projects, all built reproducibly with [gomod2nix](https://github.com/nix-community/gomod2nix).
+Nix flake exposing versioned Kubernetes package sets. Each Kubernetes minor version ships a package set containing core binaries and selected SIG projects, all built reproducibly with `buildGoModule` against pinned source/vendor hashes in `hashes.json`.
 
 ## Supported versions
 
@@ -50,12 +50,16 @@ kubepkgs.legacyPackages.x86_64-linux.kubernetes."1.33".sigs.cluster-api
 ## Development
 
 ```bash
-make build                              # build default package (latest kube-apiserver)
-make check                              # nix flake check
-make fmt                                # format with nixfmt
-make update                             # update flake inputs
-make update-gomod2nix PKG=core-1.36    # regenerate gomod2nix.toml for one package
-make update-all-gomod2nix              # regenerate all gomod2nix.toml files
+make build                          # build default package (latest kube-apiserver)
+make check                          # nix flake check
+make fmt                            # format with nixfmt
+make update                         # update flake inputs
+make fetch-versions                 # bump versions.json patch versions from upstream releases
+make generate-hashes                # regenerate hashes.json srcHash/commit entries
+make update-vendor-hash PKG=cluster-api  # resolve real vendorHash for one SIG
+make update-releases                # fetch-versions + regenerate all hashes
 ```
+
+The version/hash update lifecycle (`versions.json`/`hashes.json`) is implemented by the `tools/update` Go CLI (packaged via `gomod2nix`, `nix run .#update -- <subcommand>`), wired into the `make` targets above.
 
 `direnv` + `use flake` provides the dev shell automatically.
