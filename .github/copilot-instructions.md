@@ -55,6 +55,12 @@ scripts:
   values by building with a fake hash and parsing the reported one.
 - `make update-releases`: all three, in order.
 
+Each stage does only outstanding work. A Kubernetes record's `srcHash`/`commit` are written
+with the version they describe and cleared by `fetch-versions` on a bump; SIG records are
+keyed by the version they describe. So an empty hash means "needs fetching" and populated
+records are current by construction. `--force` (generate-hashes) and `--all` (vendor-hashes)
+override.
+
 A SIG record holds `owner` and `path` (so the roster of SIG packages is data), a `minors` map
 pinning a SIG version per Kubernetes minor, and a `versions` map of hashes keyed by *the SIG's
 own version*. Minors pinning the same SIG version therefore share one hash record, and each

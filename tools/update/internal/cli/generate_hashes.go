@@ -20,22 +20,28 @@ const kubernetesTarget = "kubernetes"
 func newGenerateHashesCmd() *cobra.Command {
 	var targets []string
 	var dryRun bool
+	var force bool
 
 	cmd := &cobra.Command{
 		Use:   "generate-hashes",
 		Short: "Populate packages.json srcHash/commit (and vendorHash placeholders) from the tracked versions",
+		Long: "Populate packages.json srcHash/commit (and vendorHash placeholders) from the tracked versions.\n\n" +
+			"Only records missing a srcHash or commit are fetched. Records are written together with the " +
+			"version they describe and cleared when that version is bumped, so a populated record is always " +
+			"current. Pass --force to refetch everything.",
 		RunE: func(cmd *cobra.Command, _ []string) error {
 			root, err := resolveRepoRoot()
 			if err != nil {
 				return err
 			}
 			return runGenerateHashes(cmd.Context(), ghclient.NewFromEnv(),
-				packagesPath(root), targets, dryRun, cmd.ErrOrStderr())
+				packagesPath(root), targets, dryRun, force, cmd.ErrOrStderr())
 		},
 	}
 	cmd.Flags().StringSliceVar(&targets, "target", nil,
 		"targets to refresh: "+kubernetesTarget+" or a SIG name (default: all)")
 	cmd.Flags().BoolVar(&dryRun, "dry-run", false, "report what would change without writing packages.json")
+	cmd.Flags().BoolVar(&force, "force", false, "refetch records that already have a srcHash and commit")
 	return cmd
 }
 
@@ -45,7 +51,7 @@ type hashFailure struct {
 	err     error
 }
 
-func runGenerateHashes(ctx context.Context, gh *ghclient.Client, path string, targets []string, dryRun bool, stderr io.Writer) error {
+func runGenerateHashes(ctx context.Context, gh *ghclient.Client, path string, targets []string, dryRun, force bool, stderr io.Writer) error {
 	f, err := schema.Load(path)
 	if err != nil {
 		return err
@@ -66,9 +72,10 @@ func runGenerateHashes(ctx context.Context, gh *ghclient.Client, path string, ta
 
 	// Stale records for versions no longer pinned would otherwise be
 	// refetched here and never used.
-	f.Prune()
+	pruned := f.Prune()
 
 	var failures []hashFailure
+	fetched := 0
 
 	for _, target := range targets {
 		if target == kubernetesTarget {
@@ -78,6 +85,10 @@ func runGenerateHashes(ctx context.Context, gh *ghclient.Client, path string, ta
 					failures = append(failures, hashFailure{target, minor, fmt.Errorf("minor %q not found in packages.json", minor)})
 					continue
 				}
+				if !force && !entry.NeedsFetch() {
+					fmt.Fprintf(stderr, "kubernetes %s: %s (up to date)\n", minor, entry.Version)
+					continue
+				}
 				srcHash, commit, err := fetchSource(ctx, gh, "kubernetes", "kubernetes", entry.Version)
 				if err != nil {
 					failures = append(failures, hashFailure{target, entry.Version, err})
@@ -85,6 +96,7 @@ func runGenerateHashes(ctx context.Context, gh *ghclient.Client, path string, ta
 				}
 				entry.SrcHash, entry.Commit = srcHash, commit
 				f.Kubernetes[minor] = entry
+				fetched++
 				fmt.Fprintf(stderr, "kubernetes %s: %s\n", minor, entry.Version)
 			}
 			continue
@@ -94,6 +106,10 @@ func runGenerateHashes(ctx context.Context, gh *ghclient.Client, path string, ta
 		// Keyed by SIG version, so a version shared by several minors is
 		// fetched once rather than once per minor.
 		for _, version := range sigVersionsInUse(f, sig) {
+			if !force && !sig.Versions[version].NeedsFetch() {
+				fmt.Fprintf(stderr, "%s %s (up to date)\n", sig.Name, version)
+				continue
+			}
 			srcHash, commit, err := fetchSource(ctx, gh, sig.Owner, sig.Name, version)
 			if err != nil {
 				failures = append(failures, hashFailure{sig.Name, version, err})
@@ -104,6 +120,7 @@ func runGenerateHashes(ctx context.Context, gh *ghclient.Client, path string, ta
 				vendorHash = existing.VendorHash
 			}
 			sig.Versions[version] = schema.SigVersion{Commit: commit, SrcHash: srcHash, VendorHash: vendorHash}
+			fetched++
 			fmt.Fprintf(stderr, "%s %s (pinned by %v)\n", sig.Name, version, sig.PinnedBy(f.Supported, version))
 		}
 	}
@@ -112,6 +129,10 @@ func runGenerateHashes(ctx context.Context, gh *ghclient.Client, path string, ta
 		fmt.Fprintf(stderr, "FAILED %s %s: %v\n", fail.target, fail.version, fail.err)
 	}
 
+	if fetched == 0 && pruned == 0 && len(failures) == 0 {
+		fmt.Fprintln(stderr, "packages.json: no records needed fetching")
+		return nil
+	}
 	if dryRun {
 		fmt.Fprintln(stderr, "packages.json: dry run, not writing")
 	} else if err := schema.Save(path, f); err != nil {
