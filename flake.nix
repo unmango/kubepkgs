@@ -87,6 +87,10 @@
             ) releases.supported
           );
 
+          consistency = pkgs.callPackage ./nix/consistency.nix {
+            globset = inputs.globset;
+          };
+
           update = pkgs.callPackage ./nix/updater.nix {
             inherit (inputs'.gomod2nix.legacyPackages) buildGoApplication;
             globset = inputs.globset;
@@ -106,7 +110,7 @@
             coreChecks
             // sigChecks
             // {
-              inherit update;
+              inherit consistency update;
             };
 
           devShells.default = pkgs.mkShellNoCC {

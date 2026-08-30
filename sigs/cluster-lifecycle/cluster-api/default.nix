@@ -2,7 +2,6 @@
   buildGoModule,
   fetchFromGitHub,
   lib,
-  nix-update-script,
   version,
   commit,
   srcHash,
@@ -30,7 +29,6 @@ buildGoModule {
     "-X sigs.k8s.io/cluster-api/version.gitVersion=v${version}"
     "-X sigs.k8s.io/cluster-api/version.gitCommit=${commit}"
   ];
-  passthru.updateScript = nix-update-script { };
   meta = with lib; {
     description = "Declarative APIs and tooling for provisioning, upgrading, and operating Kubernetes clusters";
     homepage = "https://cluster-api.sigs.k8s.io";

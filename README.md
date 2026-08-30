@@ -51,7 +51,7 @@ kubepkgs.legacyPackages.x86_64-linux.kubernetes."1.33".sigs.cluster-api
 
 ```bash
 make build                          # build default package (latest kube-apiserver)
-make check                          # nix flake check (builds the whole matrix)
+make check                          # nix flake check (build matrix + consistency check)
 make fmt                            # format with nixfmt
 make update                         # update flake inputs
 make fetch-versions                 # bump packages.json patch versions from upstream releases

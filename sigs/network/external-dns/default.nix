@@ -2,7 +2,6 @@
   buildGoModule,
   fetchFromGitHub,
   lib,
-  nix-update-script,
   version,
   commit,
   srcHash,
@@ -26,7 +25,6 @@ buildGoModule {
     "-w"
     "-s"
   ];
-  passthru.updateScript = nix-update-script { };
   meta = with lib; {
     description = "Configure external DNS servers dynamically from Kubernetes resources";
     homepage = "https://github.com/kubernetes-sigs/external-dns";
