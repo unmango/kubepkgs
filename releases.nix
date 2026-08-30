@@ -1,35 +1,37 @@
 { lib }:
 let
-  versions = builtins.fromJSON (builtins.readFile ./versions.json);
-  hashes = builtins.fromJSON (builtins.readFile ./hashes.json);
+  data = builtins.fromJSON (builtins.readFile ./packages.json);
 
+  # mkSig resolves one SIG at one Kubernetes minor into the argument set
+  # sigs/<path>/default.nix expects: the version this minor pins, plus the
+  # hashes recorded once for that version, plus where to fetch it from.
   mkSig =
-    k8sMinor: sigName: sigVersion:
+    minor: sig:
     let
-      sigHashes = hashes.sigs.${sigName}.${k8sMinor};
+      version = sig.minors.${minor};
     in
     {
-      version = sigVersion;
-      srcHash = sigHashes.srcHash;
-      commit = sigHashes.commit;
-      vendorHash = sigHashes.vendorHash;
+      inherit version;
+      inherit (sig.versions.${version})
+        srcHash
+        commit
+        vendorHash
+        ;
+      inherit (sig) owner path;
+      repo = sig.name;
     };
 
   mkEntry =
-    k8sMinor:
+    minor:
     let
-      info = versions.kubernetes.${k8sMinor};
-      k8sVer = info.version;
-      k8sHashes = hashes.kubernetes.${k8sMinor};
+      core = data.kubernetes.${minor};
     in
     {
-      version = k8sVer;
-      commit = k8sHashes.commit;
-      srcHash = k8sHashes.srcHash;
-      sigs = builtins.mapAttrs (mkSig k8sMinor) info.sigs;
+      inherit (core) version srcHash commit;
+      sigs = lib.listToAttrs (map (sig: lib.nameValuePair sig.name (mkSig minor sig)) data.sigs);
     };
 in
 {
-  inherit (versions) supported latest;
+  inherit (data) supported latest;
 }
-// lib.genAttrs versions.supported mkEntry
+// lib.genAttrs data.supported mkEntry

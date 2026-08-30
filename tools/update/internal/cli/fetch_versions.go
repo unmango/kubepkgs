@@ -17,30 +17,35 @@ func newFetchVersionsCmd() *cobra.Command {
 	var dryRun bool
 	cmd := &cobra.Command{
 		Use:   "fetch-versions",
-		Short: "Bump versions.json patch versions from upstream GitHub releases",
+		Short: "Bump packages.json patch versions from upstream GitHub releases",
+		Long: "Bump packages.json patch versions from upstream GitHub releases.\n\n" +
+			"Each tracked package stays within the minor series it is already pinned to: " +
+			"Kubernetes within its own minor, each SIG within the minor series that minor pins. " +
+			"Moving a package to a new minor series, and adding or retiring a Kubernetes minor, " +
+			"are deliberate edits to packages.json rather than something this command does.",
 		RunE: func(cmd *cobra.Command, _ []string) error {
 			root, err := resolveRepoRoot()
 			if err != nil {
 				return err
 			}
 			return runFetchVersions(cmd.Context(), ghclient.NewFromEnv(),
-				filepath.Join(root, "versions.json"), dryRun, cmd.ErrOrStderr())
+				packagesPath(root), dryRun, cmd.ErrOrStderr())
 		},
 	}
-	cmd.Flags().BoolVar(&dryRun, "dry-run", false, "report what would change without writing versions.json")
+	cmd.Flags().BoolVar(&dryRun, "dry-run", false, "report what would change without writing packages.json")
 	return cmd
 }
 
 func runFetchVersions(ctx context.Context, gh *ghclient.Client, path string, dryRun bool, stderr io.Writer) error {
-	versions, err := schema.LoadVersions(path)
+	f, err := schema.Load(path)
 	if err != nil {
 		return err
 	}
 
 	changed := false
 
-	for _, minor := range versions.Supported {
-		entry := versions.Kubernetes[minor]
+	for _, minor := range f.Supported {
+		entry := f.Kubernetes[minor]
 
 		latest, err := gh.LatestPatch(ctx, "kubernetes", "kubernetes", minor)
 		if err != nil {
@@ -53,37 +58,40 @@ func runFetchVersions(ctx context.Context, gh *ghclient.Client, path string, dry
 		} else {
 			fmt.Fprintf(stderr, "kubernetes %s: %s (up to date)\n", minor, entry.Version)
 		}
+		f.Kubernetes[minor] = entry
 
-		for _, sig := range schema.Sigs {
-			current := entry.Sigs.Get(sig)
-			owner := schema.SigOwner[sig]
+		for i := range f.Sigs {
+			sig := &f.Sigs[i]
+			current := sig.Minors[minor]
 
-			latest, err := gh.LatestPatch(ctx, owner, sig, minorOf(current))
+			latest, err := gh.LatestPatch(ctx, sig.Owner, sig.Name, minorOf(current))
 			if err != nil {
-				return fmt.Errorf("fetch-versions: %s %s: %w", sig, minor, err)
+				return fmt.Errorf("fetch-versions: %s %s: %w", sig.Name, minor, err)
 			}
 			if latest != "" && latest != current {
-				fmt.Fprintf(stderr, "  %s %s: %s -> %s\n", sig, minor, current, latest)
-				entry.Sigs.Set(sig, latest)
+				fmt.Fprintf(stderr, "  %s %s: %s -> %s\n", sig.Name, minor, current, latest)
+				sig.Minors[minor] = latest
 				changed = true
 			} else {
-				fmt.Fprintf(stderr, "  %s %s: %s (up to date)\n", sig, minor, current)
+				fmt.Fprintf(stderr, "  %s %s: %s (up to date)\n", sig.Name, minor, current)
 			}
 		}
-
-		versions.Kubernetes[minor] = entry
 	}
 
 	if !changed {
-		fmt.Fprintln(stderr, "versions.json: no changes")
+		fmt.Fprintln(stderr, "packages.json: no changes")
 		return nil
 	}
 	if dryRun {
-		fmt.Fprintln(stderr, "versions.json: changes found (dry run, not writing)")
+		fmt.Fprintln(stderr, "packages.json: changes found (dry run, not writing)")
 		return nil
 	}
 
-	if err := schema.SaveVersions(path, versions); err != nil {
+	// Versions that are no longer pinned by any minor keep stale hashes alive
+	// and would be rebuilt by vendor-hashes for no reason.
+	f.Prune()
+
+	if err := schema.Save(path, f); err != nil {
 		return err
 	}
 	fmt.Fprintf(stderr, "Wrote %s\n", path)
@@ -91,11 +99,15 @@ func runFetchVersions(ctx context.Context, gh *ghclient.Client, path string, dry
 }
 
 // minorOf strips the trailing patch component off a semver-ish "X.Y.Z"
-// string, mirroring fetch-versions.nix's `sig_minor="${current%.*}"`.
+// string, yielding the minor series to search for a newer patch in.
 func minorOf(version string) string {
 	idx := strings.LastIndex(version, ".")
 	if idx < 0 {
 		return version
 	}
 	return version[:idx]
+}
+
+func packagesPath(root string) string {
+	return filepath.Join(root, "packages.json")
 }

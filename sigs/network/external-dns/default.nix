@@ -7,17 +7,18 @@
   commit,
   srcHash,
   vendorHash,
+  owner,
+  repo,
 }:
 let
   src = fetchFromGitHub {
-    owner = "kubernetes-sigs";
-    repo = "external-dns";
+    inherit owner repo;
     rev = "v${version}";
     hash = srcHash;
   };
 in
 buildGoModule {
-  pname = "external-dns";
+  pname = repo;
   inherit version src vendorHash;
   subPackages = [ "." ];
   doCheck = false;

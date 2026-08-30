@@ -30,7 +30,7 @@ func (c *Client) listReleases(ctx context.Context, owner, repo string) ([]*githu
 // LatestPatch returns the newest published, non-draft, non-prerelease
 // version of owner/repo whose tag falls within the given minor series (e.g.
 // minorPrefix "1.34" matches a tag "v1.34.9"), or "" if none match. The
-// returned string has no "v" prefix, matching versions.json's convention.
+// returned string has no "v" prefix, matching packages.json's convention.
 func (c *Client) LatestPatch(ctx context.Context, owner, repo, minorPrefix string) (string, error) {
 	releases, err := c.listReleases(ctx, owner, repo)
 	if err != nil {

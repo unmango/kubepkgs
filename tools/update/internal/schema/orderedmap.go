@@ -1,6 +1,6 @@
-// Package schema defines the on-disk JSON schema of versions.json and
-// hashes.json, and reads/writes them with the exact field order and
-// formatting those files already use in the repo.
+// Package schema defines the on-disk JSON schema of packages.json, and
+// reads/writes it with the field order and formatting the file uses in the
+// repo.
 package schema
 
 import (

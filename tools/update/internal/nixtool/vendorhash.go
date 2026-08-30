@@ -12,7 +12,7 @@ var gotHashRe = regexp.MustCompile(`got:\s*(sha256-[A-Za-z0-9+/=]+)`)
 
 // ResolveVendorHash resolves the real Nix vendorHash for a Go module by
 // building attr (the caller is responsible for having already written a
-// fake vendorHash for it to hashes.json) and parsing the real hash Nix
+// fake vendorHash for it to packages.json) and parsing the real hash Nix
 // reports out of the resulting hash-mismatch failure.
 //
 // Nix's buildGoModule intentionally fails fast when vendorHash doesn't
