@@ -1,7 +1,6 @@
 {
   buildGoModule,
   lib,
-  nix-update-script,
   version,
   commit,
   src,
@@ -49,8 +48,6 @@ let
         "-extldflags '-static'"
         "-installsuffix static"
       ];
-
-      passthru.updateScript = nix-update-script { };
 
       meta =
         with lib;

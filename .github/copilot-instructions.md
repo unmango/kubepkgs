@@ -95,6 +95,11 @@ Narrower runs go through the CLI: `nix run .#update -- generate-hashes --target 
 - **`tools/update/internal/schema`**: owns `packages.json` and is its only writer. Emits
   deterministic key order (minors per `supported`, SIG versions per semver) so a regenerated
   file diffs cleanly.
+- **`nix/consistency.nix`** + **`nix/check-consistency.py`**: the `consistency` check.
+  Validates `packages.json` against itself (complete entries, no placeholder vendorHash, no
+  orphan version records), against the tree (every SIG `path` has a `default.nix`), and
+  against the README's supported-versions table. Runs standalone as
+  `python3 nix/check-consistency.py .`.
 - **`nix/updater.nix`**: `buildGoApplication` derivation for the `tools/update` Go CLI;
   `src` is filtered to just `go.mod`/`go.sum`/`**/*.go`/`**/testdata/**` via the `globset`
   flake input + `lib.fileset.toSource`, so unrelated file changes don't trigger a rebuild.
@@ -118,5 +123,10 @@ Narrower runs go through the CLI: `nix run .#update -- generate-hashes --target 
   `owner`/`repo` as arguments, append an entry to `sigs` in `packages.json` with `name`,
   `owner`, `path`, and a `minors` map, leave `versions` as `{}`, then run
   `make generate-hashes` and `make vendor-hashes`. No `.nix` file needs editing.
+- **No `passthru.updateScript`.** `nix-update-script` cannot work here: these derivations
+  take `version` as an argument rather than embedding it, and updates go through
+  `packages.json`. Don't reintroduce it.
+- **The README's supported-versions table is checked, not decorative.** Bumping a pin means
+  updating that table, or `nix flake check` fails.
 - **Formatting:** nixfmt via `nix fmt`. `.editorconfig` enforces final newline + trimmed
   trailing whitespace.

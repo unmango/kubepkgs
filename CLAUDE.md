@@ -55,7 +55,7 @@ A SIG record carries `owner` and `path` (so the roster of SIG packages is data, 
 
 **`mk-release.nix`**: takes one release entry from `releases.nix`, fetches the kubernetes/kubernetes source, calls `core/default.nix` for core binaries, then maps each SIG entry through `callPackage (./sigs + "/${sig.path}")`.
 
-**`flake.nix`**: maps `releases.nix` through `mkRelease` to produce `legacyPackages.kubernetes`, wires up `treefmt` (nixfmt), derives `checks` from the same data (every core binary for `latest`, kubectl for each older supported minor, and one build per distinct SIG version, so minors sharing a SIG version are not built twice), exposes the `update` package (`nix/updater.nix`, the `tools/update` Go CLI packaged via `gomod2nix`'s `buildGoApplication`), and exposes `devShells.default` (gnumake + nixfmt + nix-prefetch-github + go + the `gomod2nix` CLI).
+**`flake.nix`**: maps `releases.nix` through `mkRelease` to produce `legacyPackages.kubernetes`, wires up `treefmt` (nixfmt), derives `checks` from the same data (every core binary for `latest`, kubectl for each older supported minor, one build per distinct SIG version so minors sharing a SIG version are not built twice, plus `consistency`), exposes the `update` package (`nix/updater.nix`, the `tools/update` Go CLI packaged via `gomod2nix`'s `buildGoApplication`), and exposes `devShells.default` (gnumake + nixfmt + nix-prefetch-github + go + the `gomod2nix` CLI).
 
 **`tools/update/`**: first-party Go module implementing the update lifecycle (`fetch-versions`, `generate-hashes`, `vendor-hashes` cobra subcommands of a single `kubepkgs-update` binary). Packaged separately from core/sigs via `gomod2nix`/`buildGoApplication` (unrelated to the `buildGoModule` setup used for core/sigs, that migration, per commit `5025cf4`, is settled and unaffected by this).
 
@@ -64,6 +64,8 @@ A SIG record carries `owner` and `path` (so the roster of SIG packages is data, 
 Each stage does only outstanding work. A Kubernetes record's `srcHash`/`commit` are written together with the version they describe and cleared by `fetch-versions` when that version is bumped, so a populated record is current by construction; SIG records are keyed by the version they describe, so the same holds without any clearing. `generate-hashes` therefore skips populated records and `vendor-hashes` skips resolved ones, making `make update-releases` cheap when little changed. `--force` and `--all` override this.
 
 `fetch-versions` keeps every package inside the minor series it is already pinned to. It does not add a Kubernetes minor, retire one, move `latest`, or move a SIG to a new minor series; those are deliberate edits to `packages.json`.
+
+**`nix/consistency.nix`** + **`nix/check-consistency.py`**: the `consistency` check. Validates that `packages.json` agrees with itself (every supported minor has an entry, every pinned SIG version has a complete hash record, no placeholder vendorHash, no orphan records), with the tree (every SIG `path` has a `default.nix`), and with the README's supported-versions table. Runs standalone as `python3 nix/check-consistency.py .`.
 
 **`nix/updater.nix`**: the `buildGoApplication` derivation for `tools/update`; filters `src` down to `go.mod`/`go.sum`/`**/*.go`/`**/testdata/**` via the `globset` flake input + `lib.fileset.toSource`, so unrelated file changes in `tools/update` don't trigger a rebuild.
 
