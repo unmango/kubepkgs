@@ -6,57 +6,60 @@ import (
 	"io"
 	"os"
 	"os/signal"
-	"path/filepath"
 	"syscall"
 
 	"github.com/spf13/cobra"
 
-	"github.com/unmango/kubepkgs/tools/update/internal/grouping"
 	"github.com/unmango/kubepkgs/tools/update/internal/nixtool"
 	"github.com/unmango/kubepkgs/tools/update/internal/schema"
 )
 
 func newVendorHashesCmd() *cobra.Command {
 	var sigs []string
-	var minor string
-	var printGroups bool
+	var versions []string
+	var all bool
 
 	cmd := &cobra.Command{
 		Use:   "vendor-hashes",
-		Short: "Resolve real Nix vendorHash values for SIG packages, grouped by shared SIG version",
+		Short: "Resolve real Nix vendorHash values for tracked SIG versions",
+		Long: "Resolve real Nix vendorHash values for tracked SIG versions.\n\n" +
+			"Each SIG version is resolved once, no matter how many Kubernetes minors pin it. " +
+			"By default only versions without a resolved hash are built; pass --all to redo every one.",
 		RunE: func(cmd *cobra.Command, _ []string) error {
 			root, err := resolveRepoRoot()
 			if err != nil {
 				return err
 			}
-			return runVendorHashes(cmd.Context(), root, sigs, minor, printGroups, cmd.OutOrStdout(), cmd.ErrOrStderr())
+			return runVendorHashes(cmd.Context(), packagesPath(root), sigs, versions, all, cmd.ErrOrStderr())
 		},
 	}
 	cmd.Flags().StringSliceVar(&sigs, "sig", nil, "restrict to one or more SIGs (default: all)")
-	cmd.Flags().StringVar(&minor, "minor", "", "restrict to the group whose build minor matches")
-	cmd.Flags().BoolVar(&printGroups, "print-groups", false,
-		"print the derived vendor-hash groups and exit, without building or mutating hashes.json")
+	cmd.Flags().StringSliceVar(&versions, "version", nil, "restrict to one or more SIG versions (default: all)")
+	cmd.Flags().BoolVar(&all, "all", false, "re-resolve versions that already have a vendorHash")
 	return cmd
 }
 
-func runVendorHashes(ctx context.Context, root string, sigFilter []string, minorFilter string, printGroups bool, stdout, stderr io.Writer) error {
-	versionsPath := filepath.Join(root, "versions.json")
-	hashesPath := filepath.Join(root, "hashes.json")
+// target is one SIG version to resolve, and the minor whose attribute path
+// evaluates to it.
+type target struct {
+	sig        string
+	version    string
+	buildMinor string
+	pinnedBy   []string
+}
 
-	versions, err := schema.LoadVersions(versionsPath)
+func runVendorHashes(ctx context.Context, path string, sigFilter, versionFilter []string, all bool, stderr io.Writer) error {
+	f, err := schema.Load(path)
 	if err != nil {
 		return err
 	}
 
-	groups := filterGroups(grouping.DeriveGroups(versions), sigFilter, minorFilter)
-	if len(groups) == 0 && (len(sigFilter) > 0 || minorFilter != "") {
-		return fmt.Errorf("vendor-hashes: no groups matched sig=%v minor=%q", sigFilter, minorFilter)
+	targets, err := selectTargets(f, sigFilter, versionFilter, all)
+	if err != nil {
+		return err
 	}
-
-	if printGroups {
-		for _, g := range groups {
-			fmt.Fprintln(stdout, g.String())
-		}
+	if len(targets) == 0 {
+		fmt.Fprintln(stderr, "vendor-hashes: nothing to resolve")
 		return nil
 	}
 
@@ -66,65 +69,91 @@ func runVendorHashes(ctx context.Context, root string, sigFilter []string, minor
 	}
 
 	var failed []string
-	for _, g := range groups {
-		if err := resolveGroup(ctx, hashesPath, versions.Supported, system, g); err != nil {
-			fmt.Fprintf(stderr, "FAILED %s (build=%s): %v\n", g.Sig, g.BuildMinor, err)
-			failed = append(failed, fmt.Sprintf("%s@%s", g.Sig, g.BuildMinor))
+	for _, t := range targets {
+		if err := resolve(ctx, path, system, t); err != nil {
+			fmt.Fprintf(stderr, "FAILED %s %s: %v\n", t.sig, t.version, err)
+			failed = append(failed, fmt.Sprintf("%s@%s", t.sig, t.version))
 			continue
 		}
-		fmt.Fprintf(stderr, "%s: resolved via %s, applied to %v\n", g.Sig, g.BuildMinor, g.UpdateMinors)
+		fmt.Fprintf(stderr, "%s %s: resolved via %s, pinned by %v\n", t.sig, t.version, t.buildMinor, t.pinnedBy)
 	}
 
 	if len(failed) > 0 {
-		return fmt.Errorf("vendor-hashes: failed groups: %v", failed)
+		return fmt.Errorf("vendor-hashes: failed: %v", failed)
 	}
 	return nil
 }
 
-func filterGroups(groups []grouping.Group, sigs []string, minor string) []grouping.Group {
-	if len(sigs) == 0 && minor == "" {
-		return groups
+func selectTargets(f *schema.File, sigFilter, versionFilter []string, all bool) ([]target, error) {
+	wanted := func(filter []string, value string) bool {
+		if len(filter) == 0 {
+			return true
+		}
+		for _, f := range filter {
+			if f == value {
+				return true
+			}
+		}
+		return false
 	}
 
-	sigSet := map[string]bool{}
-	for _, s := range sigs {
-		sigSet[s] = true
+	var targets []target
+	for i := range f.Sigs {
+		sig := &f.Sigs[i]
+		if !wanted(sigFilter, sig.Name) {
+			continue
+		}
+		for _, version := range sig.VersionOrder() {
+			if !wanted(versionFilter, version) {
+				continue
+			}
+			if !all && sig.Versions[version].VendorHash != "" &&
+				sig.Versions[version].VendorHash != schema.FakeVendorHash {
+				continue
+			}
+			minor, ok := sig.BuildMinor(f.Supported, version)
+			if !ok {
+				return nil, fmt.Errorf("vendor-hashes: %s %s is pinned by no supported minor", sig.Name, version)
+			}
+			targets = append(targets, target{
+				sig:        sig.Name,
+				version:    version,
+				buildMinor: minor,
+				pinnedBy:   sig.PinnedBy(f.Supported, version),
+			})
+		}
 	}
 
-	var filtered []grouping.Group
-	for _, g := range groups {
-		if len(sigs) > 0 && !sigSet[g.Sig] {
-			continue
-		}
-		if minor != "" && g.BuildMinor != minor {
-			continue
-		}
-		filtered = append(filtered, g)
+	if len(targets) == 0 && (len(sigFilter) > 0 || len(versionFilter) > 0) && all {
+		return nil, fmt.Errorf("vendor-hashes: no versions matched sig=%v version=%v", sigFilter, versionFilter)
 	}
-	return filtered
+	return targets, nil
 }
 
-// resolveGroup resolves the real vendorHash for one group by writing a fake
-// hash for g.BuildMinor, building it, and parsing the real hash out of the
-// resulting failure. hashes.json is backed up before mutation and restored
-// if resolution doesn't succeed, mirroring update-vendor-hash.nix's
-// cp/trap/mv dance (including on SIGINT/SIGTERM mid-build).
-func resolveGroup(ctx context.Context, hashesPath string, allMinors []string, system string, g grouping.Group) error {
-	backup, err := os.ReadFile(hashesPath)
+// resolve resolves the real vendorHash for one SIG version by writing a fake
+// hash for it, building the attribute, and parsing the real hash out of the
+// resulting failure. packages.json is backed up before mutation and restored
+// if resolution doesn't succeed, including on SIGINT/SIGTERM mid-build.
+func resolve(ctx context.Context, path, system string, t target) error {
+	backup, err := os.ReadFile(path)
 	if err != nil {
 		return err
 	}
-	restore := func() { _ = os.WriteFile(hashesPath, backup, 0o644) }
+	restore := func() { _ = os.WriteFile(path, backup, 0o644) }
 
-	hashes, err := schema.LoadHashes(hashesPath)
+	f, err := schema.Load(path)
 	if err != nil {
 		return err
 	}
+	sig, ok := f.Sig(t.sig)
+	if !ok {
+		return fmt.Errorf("no such sig %q", t.sig)
+	}
 
-	buildEntry := hashes.Sigs[g.Sig][g.BuildMinor]
-	buildEntry.VendorHash = schema.FakeVendorHash
-	hashes.Sigs[g.Sig][g.BuildMinor] = buildEntry
-	if err := schema.SaveHashes(hashesPath, hashes, allMinors); err != nil {
+	entry := sig.Versions[t.version]
+	entry.VendorHash = schema.FakeVendorHash
+	sig.Versions[t.version] = entry
+	if err := schema.Save(path, f); err != nil {
 		restore()
 		return err
 	}
@@ -132,7 +161,7 @@ func resolveGroup(ctx context.Context, hashesPath string, allMinors []string, sy
 	buildCtx, stop := signal.NotifyContext(ctx, os.Interrupt, syscall.SIGTERM)
 	defer stop()
 
-	attr := fmt.Sprintf(".#legacyPackages.%s.kubernetes.%q.sigs.%s", system, g.BuildMinor, g.Sig)
+	attr := fmt.Sprintf(".#legacyPackages.%s.kubernetes.%q.sigs.%s", system, t.buildMinor, t.sig)
 	hash, found, err := nixtool.ResolveVendorHash(buildCtx, attr)
 
 	switch {
@@ -147,12 +176,9 @@ func resolveGroup(ctx context.Context, hashesPath string, allMinors []string, sy
 		return fmt.Errorf("no vendorHash reported by nix build for %s", attr)
 	}
 
-	for _, m := range g.UpdateMinors {
-		entry := hashes.Sigs[g.Sig][m]
-		entry.VendorHash = hash
-		hashes.Sigs[g.Sig][m] = entry
-	}
-	if err := schema.SaveHashes(hashesPath, hashes, allMinors); err != nil {
+	entry.VendorHash = hash
+	sig.Versions[t.version] = entry
+	if err := schema.Save(path, f); err != nil {
 		restore()
 		return err
 	}

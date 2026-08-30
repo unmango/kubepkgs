@@ -21,10 +21,9 @@ let
 in
 core
 // {
-  sigs = {
-    cluster-api = callPackage ./sigs/cluster-lifecycle/cluster-api sigs.cluster-api;
-    kube-state-metrics = callPackage ./sigs/instrumentation/kube-state-metrics sigs.kube-state-metrics;
-    metrics-server = callPackage ./sigs/instrumentation/metrics-server sigs.metrics-server;
-    external-dns = callPackage ./sigs/network/external-dns sigs.external-dns;
-  };
+  # Each SIG carries its own source location in packages.json, so the set of
+  # SIG packages follows the data rather than a hand-maintained attrset.
+  sigs = builtins.mapAttrs (
+    _: sig: callPackage (./sigs + "/${sig.path}") (builtins.removeAttrs sig [ "path" ])
+  ) sigs;
 }

@@ -7,17 +7,18 @@
   commit,
   srcHash,
   vendorHash,
+  owner,
+  repo,
 }:
 let
   src = fetchFromGitHub {
-    owner = "kubernetes";
-    repo = "kube-state-metrics";
+    inherit owner repo;
     rev = "v${version}";
     hash = srcHash;
   };
 in
 buildGoModule {
-  pname = "kube-state-metrics";
+  pname = repo;
   inherit version src vendorHash;
   subPackages = [ "." ];
   doCheck = false;

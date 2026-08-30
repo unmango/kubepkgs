@@ -1,4 +1,4 @@
-// Package cli wires the version/hash update lifecycle (fetch-versions,
+// Package cli wires the packages.json update lifecycle (fetch-versions,
 // generate-hashes, vendor-hashes) into cobra subcommands of a single
 // kubepkgs-update binary.
 package cli
@@ -19,7 +19,7 @@ func Execute() error {
 func newRootCmd() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:           "kubepkgs-update",
-		Short:         "Update versions.json/hashes.json for the kubepkgs flake",
+		Short:         "Update packages.json for the kubepkgs flake",
 		SilenceUsage:  true,
 		SilenceErrors: false,
 	}

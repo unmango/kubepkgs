@@ -7,7 +7,7 @@
 > [!WARNING]
 > This project is a work in progress. Expect breaking changes.
 
-Nix flake exposing versioned Kubernetes package sets. Each Kubernetes minor version ships a package set containing core binaries and selected SIG projects, all built reproducibly with `buildGoModule` against pinned source/vendor hashes in `hashes.json`.
+Nix flake exposing versioned Kubernetes package sets. Each Kubernetes minor version ships a package set containing core binaries and selected SIG projects, all built reproducibly with `buildGoModule` against the source and vendor hashes pinned in `packages.json`.
 
 ## Supported versions
 
@@ -17,7 +17,7 @@ Nix flake exposing versioned Kubernetes package sets. Each Kubernetes minor vers
 | **1.35**          | 1.9         | 2.14               | 0.7            | 0.15         |
 | **1.34**          | 1.9         | 2.13               | 0.7            | 0.15         |
 | **1.33**          | 1.8         | 2.13               | 0.7            | 0.14         |
-Exact patch versions are pinned in `versions.json` (the table above shows only major/minor).
+Exact patch versions are pinned in `packages.json` (the table above shows only major/minor).
 
 
 ## Usage
@@ -54,12 +54,12 @@ make build                          # build default package (latest kube-apiserv
 make check                          # nix flake check
 make fmt                            # format with nixfmt
 make update                         # update flake inputs
-make fetch-versions                 # bump versions.json patch versions from upstream releases
-make generate-hashes                # regenerate hashes.json srcHash/commit entries
-make update-vendor-hash PKG=cluster-api  # resolve real vendorHash for one SIG
-make update-releases                # fetch-versions + regenerate all hashes
+make fetch-versions                 # bump packages.json patch versions from upstream releases
+make generate-hashes                # refresh srcHash/commit for every tracked version
+make vendor-hashes                  # resolve vendorHash for tracked SIG versions missing one
+make update-releases                # all three, in order
 ```
 
-The version/hash update lifecycle (`versions.json`/`hashes.json`) is implemented by the `tools/update` Go CLI (packaged via `gomod2nix`, `nix run .#update -- <subcommand>`), wired into the `make` targets above.
+The update lifecycle is implemented by the `tools/update` Go CLI (packaged via `gomod2nix`, `nix run .#update -- <subcommand>`), wired into the `make` targets above. `packages.json` is the single source of truth for tracked versions and pinned hashes; SIG hashes are keyed by the SIG's own version, so a version shared across Kubernetes minors is recorded and resolved once.
 
 `direnv` + `use flake` provides the dev shell automatically.

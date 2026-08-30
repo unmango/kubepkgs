@@ -7,17 +7,18 @@
   commit,
   srcHash,
   vendorHash,
+  owner,
+  repo,
 }:
 let
   src = fetchFromGitHub {
-    owner = "kubernetes-sigs";
-    repo = "metrics-server";
+    inherit owner repo;
     rev = "v${version}";
     hash = srcHash;
   };
 in
 buildGoModule {
-  pname = "metrics-server";
+  pname = repo;
   inherit version src vendorHash;
   subPackages = [ "cmd/metrics-server" ];
   doCheck = false;

@@ -7,17 +7,18 @@
   commit,
   srcHash,
   vendorHash,
+  owner,
+  repo,
 }:
 let
   src = fetchFromGitHub {
-    owner = "kubernetes-sigs";
-    repo = "cluster-api";
+    inherit owner repo;
     rev = "v${version}";
     hash = srcHash;
   };
 in
 buildGoModule {
-  pname = "cluster-api";
+  pname = repo;
   inherit version src vendorHash;
   subPackages = [ "cmd/clusterctl" ];
   doCheck = false;

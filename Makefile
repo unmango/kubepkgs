@@ -51,25 +51,18 @@ check lint:
 format fmt:
 	nix fmt
 
-.PHONY: fetch-versions
+# The three stages of the packages.json update lifecycle, in order. Each is a
+# thin wrapper; pass flags to the CLI directly for anything narrower.
 fetch-versions:
 	nix run '.#update' -- fetch-versions
 
-.PHONY: generate-hashes
 generate-hashes:
 	nix run '.#update' -- generate-hashes
 
-hashes.json: versions.json
-	nix run '.#update' -- generate-hashes
-
-update-vendor-hash: PKG ?=
-update-vendor-hash: hashes.json
-	nix run '.#update' -- vendor-hashes $(if $(PKG),--sig $(PKG))
-
-update-all-vendor-hashes: hashes.json
+vendor-hashes:
 	nix run '.#update' -- vendor-hashes
 
-update-releases: fetch-versions update-all-vendor-hashes
+update-releases: fetch-versions generate-hashes vendor-hashes
 
-.PHONY: update-vendor-hash update-all-vendor-hashes update-releases
+.PHONY: fetch-versions generate-hashes vendor-hashes update-releases
 .PHONY: build build-all update check lint format fmt $(BUILD_TARGETS)
