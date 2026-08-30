@@ -55,7 +55,7 @@ A SIG record carries `owner` and `path` (so the roster of SIG packages is data, 
 
 **`mk-release.nix`**: takes one release entry from `releases.nix`, fetches the kubernetes/kubernetes source, calls `core/default.nix` for core binaries, then maps each SIG entry through `callPackage (./sigs + "/${sig.path}")`.
 
-**`flake.nix`**: maps `releases.nix` through `mkRelease` to produce `legacyPackages.kubernetes`, wires up `treefmt` (nixfmt), exposes `checks` that build every `latest` core binary and SIG package, exposes the `update` package (`nix/updater.nix`, the `tools/update` Go CLI packaged via `gomod2nix`'s `buildGoApplication`), and exposes `devShells.default` (gnumake + nixfmt + nix-prefetch-github + go + the `gomod2nix` CLI).
+**`flake.nix`**: maps `releases.nix` through `mkRelease` to produce `legacyPackages.kubernetes`, wires up `treefmt` (nixfmt), derives `checks` from the same data (every core binary for `latest`, kubectl for each older supported minor, and one build per distinct SIG version, so minors sharing a SIG version are not built twice), exposes the `update` package (`nix/updater.nix`, the `tools/update` Go CLI packaged via `gomod2nix`'s `buildGoApplication`), and exposes `devShells.default` (gnumake + nixfmt + nix-prefetch-github + go + the `gomod2nix` CLI).
 
 **`tools/update/`**: first-party Go module implementing the update lifecycle (`fetch-versions`, `generate-hashes`, `vendor-hashes` cobra subcommands of a single `kubepkgs-update` binary). Packaged separately from core/sigs via `gomod2nix`/`buildGoApplication` (unrelated to the `buildGoModule` setup used for core/sigs, that migration, per commit `5025cf4`, is settled and unaffected by this).
 
@@ -88,4 +88,4 @@ No Nix needs editing: `mk-release.nix` maps over whatever `packages.json` declar
 
 `direnv` + `use flake` provides the dev shell automatically. GITHUB_TOKEN is exported via `gh auth token` in `.envrc`.
 
-CI runs `nix flake check` then `nix build .#` on every PR/push to main.
+CI runs `nix flake check` on every PR/push to main. That is the whole build matrix: the checks are derived from `packages.json`, so a version bump changes what CI covers with no list to update.

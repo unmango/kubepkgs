@@ -15,8 +15,7 @@ The flake `packages.default` is `latest.kube-apiserver`.
 
 ```bash
 make build                 # nix build .#            (default = latest kube-apiserver)
-make build-all             # build kubectl (per tracked K8s minor) + each tracked SIG package for current system
-make check                 # nix flake check         (also: make lint)
+make check                 # nix flake check         (also: make lint) — the whole build matrix
 make fmt                   # nix fmt (treefmt -> nixfmt)   (also: make format)
 make update                # nix flake update
 ```
@@ -26,16 +25,19 @@ Build one package directly (quote the attr path):
 ```bash
 nix build '.#legacyPackages.x86_64-linux.kubernetes."1.36".kubectl'
 nix build '.#legacyPackages.x86_64-linux.kubernetes."1.33".sigs.cluster-api'
-# or via the Makefile helper (uses current system automatically):
-make build-core-1.36
-make build-cluster-api-1.10
+# a single check by name (quote it, the names contain dots):
+nix build '.#checks.x86_64-linux."core-1.33-kubectl"'
+nix build '.#checks.x86_64-linux."sig-cluster-api-1.9.11"'
 ```
 
 There is no unit test suite for the K8s core/SIG packages themselves; `doCheck = false` for
 all core + SIG `buildGoModule` packages. "Testing" one of those means building it. (The
 `tools/update` Go CLI has its own ginkgo/gomega unit test suite, see below.) CI
-(`.github/workflows/ci.yml`) runs `nix flake check` then `nix develop -c make build-all` on
-every PR/push to `main`.
+(`.github/workflows/ci.yml`) runs `nix flake check` on every PR/push to `main`. That is the
+whole build matrix: `flake.nix` derives the checks from `packages.json` (every core binary
+for `latest`, kubectl for each older supported minor, one build per distinct SIG version), so
+a version bump changes what CI covers with no list to maintain. The Makefile holds no
+variables.
 
 ## Dependency / version update pipeline
 
@@ -82,7 +84,7 @@ Narrower runs go through the CLI: `nix run .#update -- generate-hashes --target 
   `legacyPackages.kubernetes`, wires `treefmt` (nixfmt), defines `devShells.default`
   (gnumake, nixfmt, nix-prefetch-github, go, the `gomod2nix` CLI), and exposes the `update`
   package (`nix/updater.nix`, the `tools/update` Go CLI, built via `gomod2nix`'s
-  `buildGoApplication`).
+  `buildGoApplication`). Derives `checks` from the same data rather than a hand-written list.
 - **`core/default.nix`**: builds all core binaries via a shared `mkBin` helper using
   `buildGoModule` with `vendorHash = null` against K8s's own vendored `vendor/` dir. Injects
   version info through `ldflags` mirroring `hack/lib/version.sh` into both
