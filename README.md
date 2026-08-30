@@ -55,8 +55,8 @@ make check                          # nix flake check
 make fmt                            # format with nixfmt
 make update                         # update flake inputs
 make fetch-versions                 # bump packages.json patch versions from upstream releases
-make generate-hashes                # refresh srcHash/commit for every tracked version
-make vendor-hashes                  # resolve vendorHash for tracked SIG versions missing one
+make generate-hashes                # fetch srcHash/commit for versions missing them
+make vendor-hashes                  # resolve vendorHash for versions missing one
 make update-releases                # all three, in order
 ```
 

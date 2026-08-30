@@ -73,7 +73,9 @@ func (f *File) SigNames() []string {
 
 // Prune drops Versions records no longer pinned by any supported minor, so a
 // version bump doesn't leave the hashes of the version it replaced behind.
-func (f *File) Prune() {
+// It returns the number of records removed.
+func (f *File) Prune() int {
+	removed := 0
 	for i := range f.Sigs {
 		sig := &f.Sigs[i]
 		used := map[string]bool{}
@@ -83,9 +85,31 @@ func (f *File) Prune() {
 		for version := range sig.Versions {
 			if !used[version] {
 				delete(sig.Versions, version)
+				removed++
 			}
 		}
 	}
+	return removed
+}
+
+// NeedsFetch reports whether this Kubernetes record is missing hashes for the
+// version it names. fetch-versions clears both fields when it bumps a
+// version, so a populated record always describes its current version.
+func (e CoreEntry) NeedsFetch() bool {
+	return e.SrcHash == "" || e.Commit == ""
+}
+
+// NeedsFetch reports whether this SIG version record is missing its source
+// hashes. Records are keyed by the version they describe, so a populated one
+// is current by construction.
+func (v SigVersion) NeedsFetch() bool {
+	return v.SrcHash == "" || v.Commit == ""
+}
+
+// NeedsVendorHash reports whether this SIG version still needs its vendorHash
+// resolved by a build.
+func (v SigVersion) NeedsVendorHash() bool {
+	return v.VendorHash == "" || v.VendorHash == FakeVendorHash
 }
 
 // VersionOrder returns the SIG's tracked versions in ascending semver order.

@@ -107,8 +107,7 @@ func selectTargets(f *schema.File, sigFilter, versionFilter []string, all bool) 
 			if !wanted(versionFilter, version) {
 				continue
 			}
-			if !all && sig.Versions[version].VendorHash != "" &&
-				sig.Versions[version].VendorHash != schema.FakeVendorHash {
+			if !all && !sig.Versions[version].NeedsVendorHash() {
 				continue
 			}
 			minor, ok := sig.BuildMinor(f.Supported, version)

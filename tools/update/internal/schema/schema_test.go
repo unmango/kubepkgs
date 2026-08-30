@@ -128,6 +128,38 @@ var _ = Describe("Sig lookup", func() {
 	})
 })
 
+var _ = Describe("Work detection", func() {
+	It("treats a record as needing a fetch until both hashes are present", func() {
+		Expect(schema.CoreEntry{Version: "1.0.0"}.NeedsFetch()).To(BeTrue())
+		Expect(schema.CoreEntry{Version: "1.0.0", SrcHash: "sha256-x"}.NeedsFetch()).To(BeTrue())
+		Expect(schema.CoreEntry{Version: "1.0.0", Commit: "abc"}.NeedsFetch()).To(BeTrue())
+		Expect(schema.CoreEntry{Version: "1.0.0", SrcHash: "sha256-x", Commit: "abc"}.NeedsFetch()).To(BeFalse())
+
+		Expect(schema.SigVersion{}.NeedsFetch()).To(BeTrue())
+		Expect(schema.SigVersion{SrcHash: "sha256-x", Commit: "abc"}.NeedsFetch()).To(BeFalse())
+	})
+
+	It("treats the fake vendorHash as unresolved", func() {
+		Expect(schema.SigVersion{}.NeedsVendorHash()).To(BeTrue())
+		Expect(schema.SigVersion{VendorHash: schema.FakeVendorHash}.NeedsVendorHash()).To(BeTrue())
+		Expect(schema.SigVersion{VendorHash: "sha256-real"}.NeedsVendorHash()).To(BeFalse())
+	})
+
+	It("reports every tracked record as already fetched", func() {
+		f := load()
+
+		for _, minor := range f.Supported {
+			Expect(f.Kubernetes[minor].NeedsFetch()).To(BeFalse(), "kubernetes %s", minor)
+		}
+		for _, sig := range f.Sigs {
+			for version, record := range sig.Versions {
+				Expect(record.NeedsFetch()).To(BeFalse(), "%s %s", sig.Name, version)
+				Expect(record.NeedsVendorHash()).To(BeFalse(), "%s %s", sig.Name, version)
+			}
+		}
+	})
+})
+
 var _ = Describe("Prune", func() {
 	It("drops version records no supported minor pins any more", func() {
 		f := load()
@@ -141,10 +173,14 @@ var _ = Describe("Prune", func() {
 				sig.Minors[minor] = "1.10.10"
 			}
 		}
-		f.Prune()
+		Expect(f.Prune()).To(Equal(1))
 
 		Expect(sig.Versions).To(HaveKey("1.10.10"))
 		Expect(sig.Versions).NotTo(HaveKey("1.9.11"))
 		Expect(sig.Versions).To(HaveKey("1.8.12"))
+	})
+
+	It("removes nothing when every tracked version is still pinned", func() {
+		Expect(load().Prune()).To(BeZero())
 	})
 })

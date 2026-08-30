@@ -54,6 +54,10 @@ func runFetchVersions(ctx context.Context, gh *ghclient.Client, path string, dry
 		if latest != "" && latest != entry.Version {
 			fmt.Fprintf(stderr, "kubernetes %s: %s -> %s\n", minor, entry.Version, latest)
 			entry.Version = latest
+			// The recorded hashes describe the version being replaced. Clear
+			// them so they can't be mistaken for the new version's, and so
+			// generate-hashes knows this entry is the one that needs work.
+			entry.SrcHash, entry.Commit = "", ""
 			changed = true
 		} else {
 			fmt.Fprintf(stderr, "kubernetes %s: %s (up to date)\n", minor, entry.Version)

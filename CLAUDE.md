@@ -26,7 +26,7 @@ make update          # nix flake update
 # Bump tracked patch versions in packages.json from upstream releases
 make fetch-versions
 
-# Refresh srcHash/commit for every tracked version in packages.json
+# Fetch srcHash/commit for tracked versions missing them
 make generate-hashes
 
 # Resolve vendorHash for every tracked SIG version that lacks one
@@ -60,6 +60,8 @@ A SIG record carries `owner` and `path` (so the roster of SIG packages is data, 
 **`tools/update/`**: first-party Go module implementing the update lifecycle (`fetch-versions`, `generate-hashes`, `vendor-hashes` cobra subcommands of a single `kubepkgs-update` binary). Packaged separately from core/sigs via `gomod2nix`/`buildGoApplication` (unrelated to the `buildGoModule` setup used for core/sigs, that migration, per commit `5025cf4`, is settled and unaffected by this).
 
 `internal/schema` owns `packages.json`: it is the only writer, and it emits deterministic key order (minors per `supported`, SIG versions per semver) so a regenerated file diffs cleanly.
+
+Each stage does only outstanding work. A Kubernetes record's `srcHash`/`commit` are written together with the version they describe and cleared by `fetch-versions` when that version is bumped, so a populated record is current by construction; SIG records are keyed by the version they describe, so the same holds without any clearing. `generate-hashes` therefore skips populated records and `vendor-hashes` skips resolved ones, making `make update-releases` cheap when little changed. `--force` and `--all` override this.
 
 `fetch-versions` keeps every package inside the minor series it is already pinned to. It does not add a Kubernetes minor, retire one, move `latest`, or move a SIG to a new minor series; those are deliberate edits to `packages.json`.
 
