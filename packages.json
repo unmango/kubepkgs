@@ -13,19 +13,19 @@
       "commit": "c029d48d28322ad0369aabdcf8b656fd3195cd30"
     },
     "1.34": {
-      "version": "1.34.9",
-      "srcHash": "sha256-yIgvK2vo9ZQM5Z9shz5bhYoVKe+QP+7BlG/hV8b5y3Q=",
-      "commit": "ad7c7374b74c04d07ea041d367ecb1a526bdf758"
+      "version": "1.34.11",
+      "srcHash": "sha256-66jZOm07X29jK7FHl6JnTPd5k58tWb43DfO6Sp2lago=",
+      "commit": "3a634765b787dd069f7f714fa77d767cb7d43795"
     },
     "1.35": {
-      "version": "1.35.6",
-      "srcHash": "sha256-tmDX+FfUyaP2im1++2Txa1GI+qtnR1ayrM3NZvLiMWg=",
-      "commit": "fc0e7a6ca50f7ce368f9a5516e1716b473ed3a26"
+      "version": "1.35.8",
+      "srcHash": "sha256-ubVReJ2ctFb67WUHbyujhmDPdeVxd7qbw3tikoS1+yg=",
+      "commit": "1c2e10a409eb1b03f2f28f401ce935312e20d9fb"
     },
     "1.36": {
-      "version": "1.36.2",
-      "srcHash": "sha256-vE+2iBoJvkRhJDAHMCrJLIJKD53YWRBN6fBUP4589OU=",
-      "commit": "24e2b02af5543d7910c2bb074c7264df5a8f0467"
+      "version": "1.36.4",
+      "srcHash": "sha256-cOrTskng+TTesoC2Ss6H7tGjW6e3fm/eKQUewJZeL6o=",
+      "commit": "bb826b1d48562f110659e64e8ec444327433db95"
     }
   },
   "sigs": [
