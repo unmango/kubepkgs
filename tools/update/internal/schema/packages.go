@@ -81,8 +81,9 @@ func (s *Sig) GitHubRepo() string {
 	return s.Name
 }
 
-// Tag returns the release tag naming the given version of the SIG. Most tag
-// as "v" + version; the ones that don't say so in packages.json.
+// Tag returns the release tag naming the given version of the SIG. Most SIGs
+// tag a release as "v" + version; the ones that do not record their own
+// prefix in packages.json.
 func (s *Sig) Tag(version string) string {
 	if s.TagPrefix != "" {
 		return s.TagPrefix + version

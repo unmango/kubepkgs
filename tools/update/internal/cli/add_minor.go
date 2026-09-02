@@ -124,7 +124,7 @@ func runAddMinor(
 
 	docs, err := renderDocs(root, f, moves)
 	if err != nil {
-		return err
+		return fmt.Errorf("add-minor: %w", err)
 	}
 
 	if dryRun {
@@ -154,20 +154,21 @@ type renderedDoc struct {
 // renderDocs regenerates the README's supported-versions table and retargets
 // the version-pinned examples in every doc that carries them, returning only
 // those whose content actually changed. Nothing is written here, so a dry run
-// still exercises the rendering.
+// still exercises the rendering. Errors are left unprefixed for the calling
+// command to attribute, since more than one command renders docs.
 func renderDocs(root string, f *schema.File, moves map[string]string) ([]renderedDoc, error) {
 	var changed []renderedDoc
 	for _, name := range exampleDocs {
 		path := filepath.Join(root, name)
 		data, err := os.ReadFile(path)
 		if err != nil {
-			return nil, fmt.Errorf("add-minor: reading %s: %w", path, err)
+			return nil, fmt.Errorf("reading %s: %w", path, err)
 		}
 
 		content := readme.Retarget(string(data), moves)
 		if name == "README.md" {
 			if content, err = readme.Render(content, f); err != nil {
-				return nil, fmt.Errorf("add-minor: %w", err)
+				return nil, err
 			}
 		}
 		if content != string(data) {

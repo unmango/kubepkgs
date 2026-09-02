@@ -19,7 +19,7 @@ buildGoModule {
   ];
   meta = with lib; {
     description = "Automatically adjusts the size of a Kubernetes cluster based on the utilization of Pods";
-    homepage = "https://github.com/${repo}/tree/master/cluster-autoscaler";
+    homepage = "https://github.com/kubernetes/autoscaler/tree/master/cluster-autoscaler";
     license = licenses.asl20;
     maintainers = with maintainers; [ UnstoppableMango ];
     mainProgram = "cluster-autoscaler";

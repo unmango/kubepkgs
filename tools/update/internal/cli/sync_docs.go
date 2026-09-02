@@ -40,7 +40,7 @@ func runSyncDocs(root string, dryRun bool, stderr io.Writer) error {
 
 	docs, err := renderDocs(root, f, nil)
 	if err != nil {
-		return err
+		return fmt.Errorf("sync-docs: %w", err)
 	}
 	if len(docs) == 0 {
 		fmt.Fprintln(stderr, "docs: already in sync")
