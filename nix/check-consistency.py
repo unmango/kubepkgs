@@ -71,6 +71,15 @@ def check_readme(data, root, fail):
         fail("README has no supported-versions table")
         return
 
+    # GFM keeps consuming rows until a blank line, so prose directly under the
+    # last row renders as a final row of the table. That is invisible to the
+    # row regex below, which only matches pipe-delimited lines.
+    lines = text.splitlines()
+    last = max(i for i, line in enumerate(lines) if line == rows[-1])
+    if last + 1 < len(lines) and lines[last + 1].strip():
+        fail(f"README table is followed by {lines[last + 1].strip()[:40]!r} with no blank "
+             "line, which renders as a trailing table row")
+
     def cells(row):
         return [c.strip() for c in row.strip("|").split("|")]
 

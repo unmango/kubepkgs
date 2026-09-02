@@ -48,7 +48,16 @@ func Render(doc string, f *schema.File) (string, error) {
 	if err != nil {
 		return "", err
 	}
-	return doc[:rows[0][0]] + table + doc[rows[end][1]:], nil
+
+	// GFM keeps consuming rows until a blank line, so prose sitting directly
+	// under the last row renders as a final row of the table rather than as a
+	// paragraph. Guarantee the separation instead of trusting the document to
+	// already have it.
+	rest := doc[rows[end][1]:]
+	if trailer := strings.TrimLeft(rest, "\n"); trailer != rest && trailer != "" {
+		rest = "\n\n" + trailer
+	}
+	return doc[:rows[0][0]] + table + rest, nil
 }
 
 // Table renders the supported-versions table, newest minor first. Cells hold

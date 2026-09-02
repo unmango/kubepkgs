@@ -105,6 +105,14 @@ var _ = Describe("Render", func() {
 		Expect(out).To(ContainSubstring("| Other | Table |"))
 	})
 
+	It("separates the table from the prose beneath it", func() {
+		// GFM would otherwise render this sentence as a final table row.
+		out, err := readme.Render(doc, fixture())
+		Expect(err).NotTo(HaveOccurred())
+
+		Expect(out).To(ContainSubstring("|\n\nExact patch versions"))
+	})
+
 	It("reports a document with no table", func() {
 		_, err := readme.Render("# kubepkgs\n\nNo table here.\n", fixture())
 		Expect(err).To(MatchError(ContainSubstring("no supported-versions table")))
