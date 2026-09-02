@@ -64,8 +64,7 @@ func runFetchVersions(ctx context.Context, gh *ghclient.Client, path string, dry
 		}
 		f.Kubernetes[minor] = entry
 
-		for i := range f.Sigs {
-			sig := &f.Sigs[i]
+		for _, sig := range f.Packages {
 			current := sig.Minors[minor]
 
 			latest, err := gh.LatestPatch(ctx, sig.Owner, sig.GitHubRepo(), sig.ReleaseTagPrefix(), minorOf(current))

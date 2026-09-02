@@ -96,7 +96,7 @@ func runAddMinor(
 		return fmt.Errorf("add-minor: %w", err)
 	}
 	fmt.Fprintf(stderr, "kubernetes %s: %s (new, inheriting SIG pins from %s)\n", minor, version, inherit)
-	for _, sig := range f.Sigs {
+	for _, sig := range f.Packages {
 		fmt.Fprintf(stderr, "  %s %s: %s\n", sig.Name, minor, sig.Minors[minor])
 	}
 

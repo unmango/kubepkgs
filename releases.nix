@@ -2,10 +2,10 @@
 let
   data = builtins.fromJSON (builtins.readFile ./packages.json);
 
-  # mkSig resolves one SIG at one Kubernetes minor into the argument set
-  # sigs/<path>/default.nix expects: the version this minor pins, plus the
+  # mkPackage resolves one tracked package at one Kubernetes minor into the
+  # argument set <roster>/<path>/default.nix expects: the version this minor pins, plus the
   # hashes recorded once for that version, plus where to fetch it from.
-  mkSig =
+  mkPackage =
     minor: sig:
     let
       version = sig.minors.${minor};
@@ -24,9 +24,16 @@ let
       repo = sig.repo or sig.name;
       tag = (sig.tagPrefix or "v") + version;
       subdir = sig.subdir or "";
+      # subdir narrows the source; modRoot picks a module inside it, which a
+      # module depending on its siblings by relative path needs instead.
+      modRoot = sig.modRoot or "";
       # null means "whatever nixpkgs defaults to", which is the common case.
       go = sig.go or null;
     };
+
+  mkRoster =
+    minor: packages:
+    lib.listToAttrs (map (sig: lib.nameValuePair sig.name (mkPackage minor sig)) packages);
 
   mkEntry =
     minor:
@@ -36,7 +43,8 @@ let
     {
       inherit (core) version srcHash commit;
       go = core.go or null;
-      sigs = lib.listToAttrs (map (sig: lib.nameValuePair sig.name (mkSig minor sig)) data.sigs);
+      sigs = mkRoster minor data.sigs;
+      deps = mkRoster minor (data.deps or [ ]);
     };
 in
 {

@@ -127,6 +127,13 @@ Narrower runs go through the CLI: `nix run .#update -- generate-hashes --target 
 - **Adding a K8s minor:** `make add-minor`, then `make generate-hashes` and
   `make vendor-hashes` to fill the hashes it leaves empty. `make fetch-versions` will not add
   a minor for you. `.github/workflows/update.yml` does all of this weekly and opens a PR.
+- **Rosters:** tracked packages live in `sigs` (Kubernetes SIG projects) or `deps` (things a
+  control plane needs that Kubernetes does not own, e.g. etcd), exposed at
+  `kubernetes."1.XX".sigs.<name>` / `.deps.<name>`. The two are handled by the same code
+  parameterised by roster; names must be unique across both.
+- **`subdir` vs `modRoot`:** `subdir` narrows the fetched source; `modRoot` keeps the whole
+  source and picks the module to build. A module that `replace`s its siblings by relative
+  path needs `modRoot`.
 - **Adding a SIG package:** create `sigs/<category>/<project>/default.nix` taking
   `owner`/`repo` as arguments, append an entry to `sigs` in `packages.json` with `name`,
   `owner`, `path`, and a `minors` map, leave `versions` as `{}`, then run

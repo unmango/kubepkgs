@@ -11,6 +11,7 @@
   commit,
   go ? null,
   sigs,
+  deps ? { },
 }:
 let
   resolveGo = callPackage ./nix/go-version.nix { inherit pkgs; };
@@ -36,10 +37,10 @@ let
     buildGoModule = goModuleFor "kubernetes ${lib.versions.majorMinor version}" go;
   };
 
-  # Where a SIG's source comes from is data, so the package definitions receive
-  # a ready source the way core does and stay free of fetching concerns. subdir
+  # Where a package's source comes from is data, so the definitions receive a
+  # ready source the way core does and stay free of fetching concerns. subdir
   # narrows the result for projects that share a repository with their siblings.
-  sigSource =
+  packageSource =
     sig:
     let
       repo = fetchFromGitHub {
@@ -49,26 +50,36 @@ let
       };
     in
     if sig.subdir == "" then repo else "${repo}/${sig.subdir}";
+  # Each package carries its own source location in packages.json, so a roster
+  # follows the data rather than a hand-maintained attrset. sigs and deps
+  # differ only in which directory holds the definitions.
+  mkRoster =
+    dir:
+    builtins.mapAttrs (
+      name: sig:
+      callPackage (dir + "/${sig.path}") (
+        builtins.removeAttrs sig [
+          "path"
+          "owner"
+          "tag"
+          "srcHash"
+          "subdir"
+          "modRoot"
+          "go"
+        ]
+        // {
+          src = packageSource sig;
+          buildGoModule = goModuleFor "${name} ${sig.version}" sig.go;
+        }
+        # Only the packages that declare a modRoot receive one, so the
+        # definitions that build from the source root keep the smaller
+        # argument set.
+        // lib.optionalAttrs (sig.modRoot != "") { inherit (sig) modRoot; }
+      )
+    );
 in
 core
 // {
-  # Each SIG carries its own source location in packages.json, so the set of
-  # SIG packages follows the data rather than a hand-maintained attrset.
-  sigs = builtins.mapAttrs (
-    name: sig:
-    callPackage (./sigs + "/${sig.path}") (
-      builtins.removeAttrs sig [
-        "path"
-        "owner"
-        "tag"
-        "srcHash"
-        "subdir"
-        "go"
-      ]
-      // {
-        src = sigSource sig;
-        buildGoModule = goModuleFor "${name} ${sig.version}" sig.go;
-      }
-    )
-  ) sigs;
+  sigs = mkRoster ./sigs sigs;
+  deps = mkRoster ./deps deps;
 }
