@@ -1,6 +1,6 @@
-// Package cli wires the packages.json update lifecycle (fetch-versions,
-// generate-hashes, vendor-hashes) into cobra subcommands of a single
-// kubepkgs-update binary.
+// Package cli wires the packages.json update lifecycle (add-minor,
+// fetch-versions, generate-hashes, vendor-hashes) into cobra subcommands of a
+// single kubepkgs-update binary.
 package cli
 
 import (
@@ -26,6 +26,7 @@ func newRootCmd() *cobra.Command {
 	cmd.PersistentFlags().StringVar(&repoRoot, "repo-root", "",
 		"repository root (default: auto-detected via git rev-parse --show-toplevel)")
 
+	cmd.AddCommand(newAddMinorCmd())
 	cmd.AddCommand(newFetchVersionsCmd())
 	cmd.AddCommand(newGenerateHashesCmd())
 	cmd.AddCommand(newVendorHashesCmd())

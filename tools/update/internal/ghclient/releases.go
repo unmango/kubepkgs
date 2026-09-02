@@ -52,3 +52,37 @@ func (c *Client) LatestPatch(ctx context.Context, owner, repo, minorPrefix strin
 	}
 	return best, nil
 }
+
+// LatestMinor returns the newest minor series owner/repo has a published,
+// non-draft, non-prerelease release in, e.g. "1.37". The returned string has
+// no "v" prefix, matching packages.json's convention.
+//
+// Kubernetes publishes a minor's release candidates (v1.37.0-rc.1) before its
+// stable .0, and this shares LatestPatch's prerelease filter, so a new minor
+// only appears here once its stable .0 ships. That is the right moment to
+// start tracking it.
+//
+// This reads the same single page listReleases caches, so it answers "is
+// there a minor newer than the one we track" reliably but is not a complete
+// enumeration of every minor a repo has ever released.
+func (c *Client) LatestMinor(ctx context.Context, owner, repo string) (string, error) {
+	releases, err := c.listReleases(ctx, owner, repo)
+	if err != nil {
+		return "", err
+	}
+
+	var best string
+	for _, r := range releases {
+		if r.GetDraft() || r.GetPrerelease() {
+			continue
+		}
+		minor := semver.MajorMinor(r.GetTagName())
+		if minor == "" {
+			continue
+		}
+		if best == "" || semver.Compare(minor, best) > 0 {
+			best = minor
+		}
+	}
+	return strings.TrimPrefix(best, "v"), nil
+}

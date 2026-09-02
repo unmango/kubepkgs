@@ -17,7 +17,9 @@ const releasesJSON = `[
   {"tag_name": "v1.34.8", "draft": false, "prerelease": false},
   {"tag_name": "v1.34.10", "draft": false, "prerelease": true},
   {"tag_name": "v1.34.11", "draft": true, "prerelease": false},
-  {"tag_name": "v1.35.0", "draft": false, "prerelease": false}
+  {"tag_name": "v1.35.0", "draft": false, "prerelease": false},
+  {"tag_name": "v1.36.0-rc.1", "draft": false, "prerelease": true},
+  {"tag_name": "not-a-version", "draft": false, "prerelease": false}
 ]`
 
 var _ = Describe("LatestPatch", func() {
@@ -71,5 +73,41 @@ var _ = Describe("LatestPatch", func() {
 		_, err = client.LatestPatch(context.Background(), "kubernetes", "kubernetes", "1.35")
 		Expect(err).NotTo(HaveOccurred())
 		Expect(hits).To(Equal(1))
+	})
+})
+
+var _ = Describe("LatestMinor", func() {
+	var (
+		server *httptest.Server
+		client *ghclient.Client
+	)
+
+	BeforeEach(func() {
+		mux := http.NewServeMux()
+		mux.HandleFunc("/repos/kubernetes/kubernetes/releases", func(w http.ResponseWriter, r *http.Request) {
+			w.Header().Set("Content-Type", "application/json")
+			fmt.Fprint(w, releasesJSON)
+		})
+		server = httptest.NewServer(mux)
+
+		var err error
+		client, err = ghclient.NewWithHTTPClient(server.Client(), server.URL+"/")
+		Expect(err).NotTo(HaveOccurred())
+	})
+
+	AfterEach(func() {
+		server.Close()
+	})
+
+	It("returns the newest minor with a stable release", func() {
+		minor, err := client.LatestMinor(context.Background(), "kubernetes", "kubernetes")
+		Expect(err).NotTo(HaveOccurred())
+		Expect(minor).To(Equal("1.35"))
+	})
+
+	It("ignores a minor that has only shipped release candidates", func() {
+		minor, err := client.LatestMinor(context.Background(), "kubernetes", "kubernetes")
+		Expect(err).NotTo(HaveOccurred())
+		Expect(minor).NotTo(Equal("1.36"))
 	})
 })

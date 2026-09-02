@@ -184,3 +184,114 @@ var _ = Describe("Prune", func() {
 		Expect(load().Prune()).To(BeZero())
 	})
 })
+
+var _ = Describe("AddMinor", func() {
+	It("inherits SIG pins from the newest supported minor", func() {
+		f := load()
+
+		Expect(f.AddMinor("1.37", "1.37.0")).To(Succeed())
+
+		for _, sig := range f.Sigs {
+			Expect(sig.Minors["1.37"]).To(Equal(sig.Minors["1.36"]), sig.Name)
+		}
+	})
+
+	It("leaves hashes empty so generate-hashes picks the record up", func() {
+		f := load()
+
+		Expect(f.AddMinor("1.37", "1.37.0")).To(Succeed())
+
+		Expect(f.Kubernetes["1.37"].Version).To(Equal("1.37.0"))
+		Expect(f.Kubernetes["1.37"].NeedsFetch()).To(BeTrue())
+	})
+
+	It("keeps supported in ascending order and moves latest", func() {
+		f := load()
+
+		Expect(f.AddMinor("1.37", "1.37.0")).To(Succeed())
+
+		Expect(f.Supported).To(Equal([]string{"1.33", "1.34", "1.35", "1.36", "1.37"}))
+		Expect(f.Latest).To(Equal("1.37"))
+	})
+
+	It("does not move latest when the minor is not the newest", func() {
+		f := load()
+
+		Expect(f.AddMinor("1.32", "1.32.0")).To(Succeed())
+
+		Expect(f.Supported[0]).To(Equal("1.32"))
+		Expect(f.Latest).To(Equal("1.36"))
+	})
+
+	It("leaves the file untouched when a SIG pin cannot be inherited", func() {
+		f := load()
+		delete(f.Sigs[0].Minors, "1.36")
+		supported := append([]string(nil), f.Supported...)
+
+		Expect(f.AddMinor("1.37", "1.37.0")).To(
+			MatchError(ContainSubstring("has no version for 1.36 to inherit")))
+
+		Expect(f.Supported).To(Equal(supported))
+		Expect(f.Kubernetes).NotTo(HaveKey("1.37"))
+		for _, sig := range f.Sigs {
+			Expect(sig.Minors).NotTo(HaveKey("1.37"), sig.Name)
+		}
+	})
+
+	It("refuses a minor that is already tracked", func() {
+		f := load()
+
+		Expect(f.AddMinor("1.36", "1.36.99")).To(
+			MatchError(ContainSubstring("already tracked")))
+	})
+})
+
+var _ = Describe("RetireMinor", func() {
+	It("removes the minor from supported, kubernetes, and every SIG", func() {
+		f := load()
+
+		Expect(f.RetireMinor("1.33")).To(Succeed())
+
+		Expect(f.Supported).NotTo(ContainElement("1.33"))
+		Expect(f.Kubernetes).NotTo(HaveKey("1.33"))
+		for _, sig := range f.Sigs {
+			Expect(sig.Minors).NotTo(HaveKey("1.33"), sig.Name)
+		}
+	})
+
+	It("refuses to retire latest", func() {
+		f := load()
+
+		Expect(f.RetireMinor("1.36")).To(MatchError(ContainSubstring("it is latest")))
+	})
+
+	It("refuses a minor that is not tracked", func() {
+		f := load()
+
+		Expect(f.RetireMinor("1.20")).To(MatchError(ContainSubstring("not tracked")))
+	})
+
+	It("leaves a saveable file when paired with AddMinor", func() {
+		f := load()
+		before := len(f.Supported)
+
+		Expect(f.AddMinor("1.37", "1.37.0")).To(Succeed())
+		Expect(f.RetireMinor("1.33")).To(Succeed())
+		f.Prune()
+
+		Expect(f.Supported).To(HaveLen(before))
+		Expect(save(f)).To(ContainSubstring(`"1.37"`))
+	})
+
+	It("prunes the SIG versions the retired minor was the last to pin", func() {
+		f := load()
+		clusterAPI, ok := f.Sig("cluster-api")
+		Expect(ok).To(BeTrue())
+		Expect(clusterAPI.Versions).To(HaveKey("1.8.12"))
+
+		Expect(f.RetireMinor("1.33")).To(Succeed())
+		Expect(f.Prune()).To(BeNumerically(">", 0))
+
+		Expect(clusterAPI.Versions).NotTo(HaveKey("1.8.12"))
+	})
+})

@@ -21,8 +21,8 @@ func newFetchVersionsCmd() *cobra.Command {
 		Long: "Bump packages.json patch versions from upstream GitHub releases.\n\n" +
 			"Each tracked package stays within the minor series it is already pinned to: " +
 			"Kubernetes within its own minor, each SIG within the minor series that minor pins. " +
-			"Moving a package to a new minor series, and adding or retiring a Kubernetes minor, " +
-			"are deliberate edits to packages.json rather than something this command does.",
+			"Moving a package to a new minor series is a deliberate edit to packages.json rather than " +
+			"something this command does; adding a Kubernetes minor and retiring the oldest is add-minor's job.",
 		RunE: func(cmd *cobra.Command, _ []string) error {
 			root, err := resolveRepoRoot()
 			if err != nil {

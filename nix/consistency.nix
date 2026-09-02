@@ -14,6 +14,8 @@ runCommand "kubepkgs-consistency"
       fileset = globset.lib.globs root [
         "packages.json"
         "README.md"
+        "CLAUDE.md"
+        ".github/copilot-instructions.md"
         "nix/check-consistency.py"
         "sigs/**/default.nix"
       ];
