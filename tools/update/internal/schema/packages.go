@@ -35,8 +35,18 @@ type SigVersion struct {
 type Sig struct {
 	Name  string `json:"name"`
 	Owner string `json:"owner"`
+	// Repo is the GitHub repository, when it differs from Name. cluster-autoscaler
+	// lives in kubernetes/autoscaler, for instance.
+	Repo string `json:"repo,omitempty"`
 	// Path locates the package definition, relative to the repo's sigs/ dir.
 	Path string `json:"path"`
+	// TagPrefix is what a release tag puts in front of the version, when it is
+	// not the usual "v". cluster-autoscaler tags "cluster-autoscaler-1.36.1",
+	// kustomize tags "kustomize/v5.8.1".
+	TagPrefix string `json:"tagPrefix,omitempty"`
+	// Subdir is the directory within the repository the module lives in, for
+	// projects that share a repository with their siblings.
+	Subdir string `json:"subdir,omitempty"`
 	// Minors maps a Kubernetes minor to the SIG version it pins.
 	Minors map[string]string `json:"minors"`
 	// Versions maps a SIG version to its hashes.
@@ -60,6 +70,25 @@ func (f *File) Sig(name string) (*Sig, bool) {
 		}
 	}
 	return nil, false
+}
+
+// GitHubRepo returns the repository to fetch the SIG from, which is its name
+// unless the record says otherwise.
+func (s *Sig) GitHubRepo() string {
+	if s.Repo != "" {
+		return s.Repo
+	}
+	return s.Name
+}
+
+// Tag returns the release tag naming the given version of the SIG. Most SIGs
+// tag a release as "v" + version; the ones that do not record their own
+// prefix in packages.json.
+func (s *Sig) Tag(version string) string {
+	if s.TagPrefix != "" {
+		return s.TagPrefix + version
+	}
+	return "v" + version
 }
 
 // SigNames returns every tracked SIG name, in file order.
@@ -338,10 +367,13 @@ func marshalSigs(f *File) ([]byte, error) {
 		}
 
 		head, err := json.Marshal(struct {
-			Name  string `json:"name"`
-			Owner string `json:"owner"`
-			Path  string `json:"path"`
-		}{sig.Name, sig.Owner, sig.Path})
+			Name      string `json:"name"`
+			Owner     string `json:"owner"`
+			Repo      string `json:"repo,omitempty"`
+			Path      string `json:"path"`
+			TagPrefix string `json:"tagPrefix,omitempty"`
+			Subdir    string `json:"subdir,omitempty"`
+		}{sig.Name, sig.Owner, sig.Repo, sig.Path, sig.TagPrefix, sig.Subdir})
 		if err != nil {
 			return nil, err
 		}

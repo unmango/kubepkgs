@@ -11,12 +11,12 @@ Nix flake exposing versioned Kubernetes package sets. Each Kubernetes minor vers
 
 ## Supported versions
 
-| Kubernetes        | cluster-api | kube-state-metrics | metrics-server | external-dns |
-| ----------------- | ----------- | ------------------ | -------------- | ------------ |
-| **1.37** (latest) | 1.10        | 2.14               | 0.7            | 0.15         |
-| **1.36**          | 1.10        | 2.14               | 0.7            | 0.15         |
-| **1.35**          | 1.9         | 2.14               | 0.7            | 0.15         |
-| **1.34**          | 1.9         | 2.13               | 0.7            | 0.15         |
+| Kubernetes        | cluster-api | kube-state-metrics | metrics-server | external-dns | cluster-autoscaler | descheduler | kind | node-feature-discovery | secrets-store-csi-driver | kustomize |
+| ----------------- | ----------- | ------------------ | -------------- | ------------ | ------------------ | ----------- | ---- | ---------------------- | ------------------------ | --------- |
+| **1.37** (latest) | 1.10        | 2.14               | 0.7            | 0.15         | 1.36               | 0.36        | 0.33 | 0.19                   | 1.6                      | 5.8       |
+| **1.36**          | 1.10        | 2.14               | 0.7            | 0.15         | 1.36               | 0.36        | 0.33 | 0.19                   | 1.6                      | 5.8       |
+| **1.35**          | 1.9         | 2.14               | 0.7            | 0.15         | 1.35               | 0.35        | 0.33 | 0.19                   | 1.6                      | 5.8       |
+| **1.34**          | 1.9         | 2.13               | 0.7            | 0.15         | 1.34               | 0.34        | 0.33 | 0.19                   | 1.6                      | 5.8       |
 Exact patch versions are pinned in `packages.json` (the table above shows only major/minor).
 
 
@@ -45,7 +45,7 @@ kubepkgs.legacyPackages.x86_64-linux.kubernetes."1.34".sigs.cluster-api
 
 ### Available SIG packages
 
-`sigs.cluster-api`, `sigs.kube-state-metrics`, `sigs.metrics-server`, `sigs.external-dns`
+`sigs.cluster-api`, `sigs.cluster-autoscaler`, `sigs.descheduler`, `sigs.external-dns`, `sigs.kind`, `sigs.kube-state-metrics`, `sigs.kustomize`, `sigs.metrics-server`, `sigs.node-feature-discovery`, `sigs.secrets-store-csi-driver`
 
 ## Development
 
@@ -55,6 +55,7 @@ make check                          # nix flake check (build matrix + consistenc
 make fmt                            # format with nixfmt
 make update                         # update flake inputs
 make add-minor                      # track the newest Kubernetes minor upstream, retire the oldest
+make sync-docs                      # regenerate the README table from packages.json
 make fetch-versions                 # bump packages.json patch versions from upstream releases
 make generate-hashes                # fetch srcHash/commit for versions missing them
 make vendor-hashes                  # resolve vendorHash for versions missing one

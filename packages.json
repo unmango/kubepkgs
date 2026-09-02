@@ -110,6 +110,139 @@
           "vendorHash": "sha256-baIp/FWpNMxZlWRW3VdvCbe2MDuLj2BCRJm4fWn7KoI="
         }
       }
+    },
+    {
+      "name": "cluster-autoscaler",
+      "owner": "kubernetes",
+      "repo": "autoscaler",
+      "path": "autoscaling/cluster-autoscaler",
+      "tagPrefix": "cluster-autoscaler-",
+      "subdir": "cluster-autoscaler",
+      "minors": {
+        "1.34": "1.34.5",
+        "1.35": "1.35.2",
+        "1.36": "1.36.1",
+        "1.37": "1.36.1"
+      },
+      "versions": {
+        "1.34.5": {
+          "commit": "cb2123ed13148c38fbdb1ede42d8e99761ee2909",
+          "srcHash": "sha256-X5hr+LO/qmtLpxsr0S3Jo0yc5OZQwhMQAvHt27pd+os=",
+          "vendorHash": "sha256-UZLjAok0wPnmoiCxOCYchH65zvjNceijDJfDE4iveNQ="
+        },
+        "1.35.2": {
+          "commit": "2d42588803c71fe9b35dcd9e3669ac6bb550ca22",
+          "srcHash": "sha256-rlUGvkG24iInBXess5VN+KTBXiNJI0CABBsbsFxxMZ8=",
+          "vendorHash": "sha256-o3pIekb8lTVTIDewlG/5ZycNJuKgCroZf9SVLrjG1cY="
+        },
+        "1.36.1": {
+          "commit": "35e8a280425c76a4040f57ae0fa232a952c02024",
+          "srcHash": "sha256-THI6cY5MwhK2adS7sJvzOEz0xUGimuI4D/BOYy0tMvI=",
+          "vendorHash": "sha256-IrGuRNt1UsMnMirfE3bk1TA7ZBA28HYrXzbEQktjzlA="
+        }
+      }
+    },
+    {
+      "name": "descheduler",
+      "owner": "kubernetes-sigs",
+      "path": "scheduling/descheduler",
+      "minors": {
+        "1.34": "0.34.0",
+        "1.35": "0.35.1",
+        "1.36": "0.36.0",
+        "1.37": "0.36.0"
+      },
+      "versions": {
+        "0.34.0": {
+          "commit": "dd7b76f2c42a306931bd00a1f926e1a45aac45b4",
+          "srcHash": "sha256-f257zBH+splCM3mppGUGyx4Cd/jhEuQWCfzUt/PckvE=",
+          "vendorHash": "sha256-dCvmhsUdCEgVfbkDLfZ8lQsSkE+EbrvBRKmRzfNFbMY="
+        },
+        "0.35.1": {
+          "commit": "2908b4308964b9e7ebc7a25449500c4762770a3e",
+          "srcHash": "sha256-4YEgi3ScGvzEqlB384NvhUTHNTb4gQ9t6JZ+5xxV0ms=",
+          "vendorHash": "sha256-qRBgvEQ0cUQQpMTyxv/S7A8TDMG09sceKxsM2XAf/ig="
+        },
+        "0.36.0": {
+          "commit": "8005cdf78391e2c071cfa653c462dfefc2de8856",
+          "srcHash": "sha256-54zmrO68dyCflSKQB7aHlxk/dSDQqm9Ya2JJolCZyUU=",
+          "vendorHash": "sha256-55IyQ/C2RT8k3tFIAXGTBLOmbhwc6NMpHVQd2d093Fc="
+        }
+      }
+    },
+    {
+      "name": "kind",
+      "owner": "kubernetes-sigs",
+      "path": "cluster-lifecycle/kind",
+      "minors": {
+        "1.34": "0.33.0",
+        "1.35": "0.33.0",
+        "1.36": "0.33.0",
+        "1.37": "0.33.0"
+      },
+      "versions": {
+        "0.33.0": {
+          "commit": "407a9675e6d9af1200b5f57f9ca52ec6cdacce74",
+          "srcHash": "sha256-exqO/KERw/SOv3dywcrm/DSHY37dfTOhQezg6Nroew0=",
+          "vendorHash": "sha256-tRpylYpEGF6XqtBl7ESYlXKEEAt+Jws4x4VlUVW8SNI="
+        }
+      }
+    },
+    {
+      "name": "node-feature-discovery",
+      "owner": "kubernetes-sigs",
+      "path": "node/node-feature-discovery",
+      "minors": {
+        "1.34": "0.19.0",
+        "1.35": "0.19.0",
+        "1.36": "0.19.0",
+        "1.37": "0.19.0"
+      },
+      "versions": {
+        "0.19.0": {
+          "commit": "45d276ed9d3f0f67fb642aa78969721df3034451",
+          "srcHash": "sha256-r4Jz8CJj9qOBxvUeX4+Mklgl+sOCtODng43KfXVws5E=",
+          "vendorHash": "sha256-R8d05gFv27tMste6cW3KwY4VxYOzaMyhx1LZykVWSn8="
+        }
+      }
+    },
+    {
+      "name": "secrets-store-csi-driver",
+      "owner": "kubernetes-sigs",
+      "path": "auth/secrets-store-csi-driver",
+      "minors": {
+        "1.34": "1.6.0",
+        "1.35": "1.6.0",
+        "1.36": "1.6.0",
+        "1.37": "1.6.0"
+      },
+      "versions": {
+        "1.6.0": {
+          "commit": "4960f9637c51ad9cb9ef264481bc6d9a98bf1f1c",
+          "srcHash": "sha256-vWGLcyWSkv2ExyTbQKJTuPqMHW/GJhIuszRO2uGQEwM=",
+          "vendorHash": "sha256-vLNd+dyT1oeJ6QvaMI/SN3yZt1AwwkvIWNqZQBVcI50="
+        }
+      }
+    },
+    {
+      "name": "kustomize",
+      "owner": "kubernetes-sigs",
+      "path": "cli/kustomize",
+      "tagPrefix": "kustomize/v",
+      "subdir": "kustomize",
+      "minors": {
+        "1.34": "5.8.1",
+        "1.35": "5.8.1",
+        "1.36": "5.8.1",
+        "1.37": "5.8.1"
+      },
+      "versions": {
+        "5.8.1": {
+          "commit": "9790a1c3efd2fd35f1b768d495112834176581c1",
+          "srcHash": "sha256-IFof+h6GBlI19ygufNvQ6HgwGbmS0xR5CmrFafknHf0=",
+          "vendorHash": "sha256-3y7uqNUZcWqUq1XuttXsrVazRgsatE0/q7VCjKNj+EY="
+        }
+      }
     }
   ]
 }

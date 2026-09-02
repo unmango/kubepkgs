@@ -31,7 +31,12 @@ generate-hashes:
 vendor-hashes:
 	nix run '.#update' -- vendor-hashes
 
+# Regenerate the README table after an edit to packages.json that it reflects,
+# such as adding a SIG. add-minor already does this for its own changes.
+sync-docs:
+	nix run '.#update' -- sync-docs
+
 update-releases: fetch-versions generate-hashes vendor-hashes
 
-.PHONY: add-minor fetch-versions generate-hashes vendor-hashes update-releases
+.PHONY: add-minor sync-docs fetch-versions generate-hashes vendor-hashes update-releases
 .PHONY: build update check lint format fmt

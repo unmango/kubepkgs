@@ -89,7 +89,7 @@ func runGenerateHashes(ctx context.Context, gh *ghclient.Client, path string, ta
 					fmt.Fprintf(stderr, "kubernetes %s: %s (up to date)\n", minor, entry.Version)
 					continue
 				}
-				srcHash, commit, err := fetchSource(ctx, gh, "kubernetes", "kubernetes", entry.Version)
+				srcHash, commit, err := fetchSource(ctx, gh, "kubernetes", "kubernetes", "v"+entry.Version)
 				if err != nil {
 					failures = append(failures, hashFailure{target, entry.Version, err})
 					continue
@@ -110,7 +110,7 @@ func runGenerateHashes(ctx context.Context, gh *ghclient.Client, path string, ta
 				fmt.Fprintf(stderr, "%s %s (up to date)\n", sig.Name, version)
 				continue
 			}
-			srcHash, commit, err := fetchSource(ctx, gh, sig.Owner, sig.Name, version)
+			srcHash, commit, err := fetchSource(ctx, gh, sig.Owner, sig.GitHubRepo(), sig.Tag(version))
 			if err != nil {
 				failures = append(failures, hashFailure{sig.Name, version, err})
 				continue
@@ -160,8 +160,7 @@ func sigVersionsInUse(f *schema.File, sig *schema.Sig) []string {
 	return sig.VersionOrder()
 }
 
-func fetchSource(ctx context.Context, gh *ghclient.Client, owner, repo, version string) (srcHash, commit string, err error) {
-	tag := "v" + version
+func fetchSource(ctx context.Context, gh *ghclient.Client, owner, repo, tag string) (srcHash, commit string, err error) {
 	if srcHash, err = nixtool.PrefetchGithub(ctx, owner, repo, tag); err != nil {
 		return "", "", err
 	}
