@@ -51,6 +51,22 @@ var _ = Describe("File", func() {
     "1.40": {`))
 	})
 
+	It("omits an unset go pin and emits one that is set", func() {
+		f := load()
+		Expect(save(f)).NotTo(ContainSubstring(`"go"`))
+
+		f.Sigs[0].Go = "1.25"
+		entry := f.Kubernetes["1.36"]
+		entry.Go = "1.25"
+		f.Kubernetes["1.36"] = entry
+
+		out := save(f)
+		Expect(out).To(ContainSubstring(`"commit": "24e2b02af5543d7910c2bb074c7264df5a8f0467",
+      "go": "1.25"`))
+		Expect(out).To(ContainSubstring(`"path": "cluster-lifecycle/cluster-api",
+      "go": "1.25"`))
+	})
+
 	It("orders sig versions by semver, not lexically", func() {
 		f := &schema.File{
 			Supported:  []string{"1.99"},

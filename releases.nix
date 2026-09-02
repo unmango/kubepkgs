@@ -24,6 +24,8 @@ let
       repo = sig.repo or sig.name;
       tag = (sig.tagPrefix or "v") + version;
       subdir = sig.subdir or "";
+      # null means "whatever nixpkgs defaults to", which is the common case.
+      go = sig.go or null;
     };
 
   mkEntry =
@@ -33,6 +35,7 @@ let
     in
     {
       inherit (core) version srcHash commit;
+      go = core.go or null;
       sigs = lib.listToAttrs (map (sig: lib.nameValuePair sig.name (mkSig minor sig)) data.sigs);
     };
 in

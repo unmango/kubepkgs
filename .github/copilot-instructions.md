@@ -118,6 +118,10 @@ Narrower runs go through the CLI: `nix run .#update -- generate-hashes --target 
 - **`kubectl` is dynamically linked; every other core binary is static.** This mirrors
   `KUBE_STATIC_BINARIES` in upstream `hack/lib/golang.sh` (the third `mkBin` arg toggles
   `-extldflags '-static'` + `CGO_ENABLED = 0`).
+- **Go toolchain:** a `kubernetes` or `sigs` record in `packages.json` may set `go` (e.g. `"1.25"`)
+  to build against a specific toolchain instead of the nixpkgs default. `nix/go-version.nix`
+  resolves it and throws if nixpkgs has no matching attribute. Only useful for pinning *older*
+  than the default; needing a newer Go means moving the nixpkgs input.
 - **Reproducibility pins:** core `ldflags` set `buildDate` to the epoch and `gitTreeState` to
   `clean`; `commit` comes from `packages.json`.
 - **Adding a K8s minor:** `make add-minor`, then `make generate-hashes` and
