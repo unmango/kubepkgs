@@ -122,6 +122,7 @@
           checks =
             coreChecks
             // sigChecks
+            // depChecks
             // {
               inherit consistency update;
             };
