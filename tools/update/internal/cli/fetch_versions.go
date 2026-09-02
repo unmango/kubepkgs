@@ -47,7 +47,7 @@ func runFetchVersions(ctx context.Context, gh *ghclient.Client, path string, dry
 	for _, minor := range f.Supported {
 		entry := f.Kubernetes[minor]
 
-		latest, err := gh.LatestPatch(ctx, "kubernetes", "kubernetes", minor)
+		latest, err := gh.LatestPatch(ctx, "kubernetes", "kubernetes", "v", minor)
 		if err != nil {
 			return fmt.Errorf("fetch-versions: kubernetes %s: %w", minor, err)
 		}
@@ -68,7 +68,7 @@ func runFetchVersions(ctx context.Context, gh *ghclient.Client, path string, dry
 			sig := &f.Sigs[i]
 			current := sig.Minors[minor]
 
-			latest, err := gh.LatestPatch(ctx, sig.Owner, sig.Name, minorOf(current))
+			latest, err := gh.LatestPatch(ctx, sig.Owner, sig.GitHubRepo(), sig.ReleaseTagPrefix(), minorOf(current))
 			if err != nil {
 				return fmt.Errorf("fetch-versions: %s %s: %w", sig.Name, minor, err)
 			}

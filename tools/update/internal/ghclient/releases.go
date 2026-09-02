@@ -27,11 +27,17 @@ func (c *Client) listReleases(ctx context.Context, owner, repo string) ([]*githu
 	return releases, nil
 }
 
-// LatestPatch returns the newest published, non-draft, non-prerelease
-// version of owner/repo whose tag falls within the given minor series (e.g.
-// minorPrefix "1.34" matches a tag "v1.34.9"), or "" if none match. The
-// returned string has no "v" prefix, matching packages.json's convention.
-func (c *Client) LatestPatch(ctx context.Context, owner, repo, minorPrefix string) (string, error) {
+// LatestPatch returns the newest published, non-draft, non-prerelease version
+// of owner/repo whose tag falls within the given minor series, or "" if none
+// match. tagPrefix is what the project puts in front of the version ("v" for
+// most, "cluster-autoscaler-" or "kustomize/v" for the ones that share a
+// repository); minorPrefix "1.34" then matches a tag "v1.34.9". The returned
+// string carries no prefix, matching packages.json's convention.
+//
+// A tag that does not carry tagPrefix is skipped rather than trimmed, so a
+// repository publishing several projects' tags does not leak its siblings'
+// releases into this one's series.
+func (c *Client) LatestPatch(ctx context.Context, owner, repo, tagPrefix, minorPrefix string) (string, error) {
 	releases, err := c.listReleases(ctx, owner, repo)
 	if err != nil {
 		return "", err
@@ -42,7 +48,11 @@ func (c *Client) LatestPatch(ctx context.Context, owner, repo, minorPrefix strin
 		if r.GetDraft() || r.GetPrerelease() {
 			continue
 		}
-		version := strings.TrimPrefix(r.GetTagName(), "v")
+		tag := r.GetTagName()
+		if !strings.HasPrefix(tag, tagPrefix) {
+			continue
+		}
+		version := strings.TrimPrefix(tag, tagPrefix)
 		if !strings.HasPrefix(version, minorPrefix+".") {
 			continue
 		}
