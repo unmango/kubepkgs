@@ -17,8 +17,8 @@ Nix flake exposing versioned Kubernetes package sets. Each Kubernetes minor vers
 | **1.36**          | 1.10        | 2.14               | 0.7            | 0.15         | 1.36               | 0.36        | 0.33 | 0.19                   | 1.6                      | 5.8       |
 | **1.35**          | 1.9         | 2.14               | 0.7            | 0.15         | 1.35               | 0.35        | 0.33 | 0.19                   | 1.6                      | 5.8       |
 | **1.34**          | 1.9         | 2.13               | 0.7            | 0.15         | 1.34               | 0.34        | 0.33 | 0.19                   | 1.6                      | 5.8       |
-Exact patch versions are pinned in `packages.json` (the table above shows only major/minor).
 
+Exact patch versions are pinned in `packages.json` (the table above shows only major/minor).
 
 ## Usage
 
