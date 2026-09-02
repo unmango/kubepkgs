@@ -82,7 +82,7 @@ func runAddMinor(
 		}
 	}
 
-	version, err := gh.LatestPatch(ctx, "kubernetes", "kubernetes", minor)
+	version, err := gh.LatestPatch(ctx, "kubernetes", "kubernetes", "v", minor)
 	if err != nil {
 		return fmt.Errorf("add-minor: kubernetes %s: %w", minor, err)
 	}
