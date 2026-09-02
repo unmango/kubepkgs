@@ -20,6 +20,17 @@ Nix flake exposing versioned Kubernetes package sets. Each Kubernetes minor vers
 
 Exact patch versions are pinned in `packages.json` (the table above shows only major/minor).
 
+### Dependencies
+
+Kubernetes pins a specific etcd release per minor; these follow it.
+
+| Kubernetes        | etcd | etcdctl | etcdutl |
+| ----------------- | ---- | ------- | ------- |
+| **1.37** (latest) | 3.7  | 3.7     | 3.7     |
+| **1.36**          | 3.6  | 3.6     | 3.6     |
+| **1.35**          | 3.6  | 3.6     | 3.6     |
+| **1.34**          | 3.6  | 3.6     | 3.6     |
+
 ## Usage
 
 Add the flake to your inputs:
@@ -42,6 +53,10 @@ kubepkgs.legacyPackages.x86_64-linux.kubernetes."1.34".sigs.cluster-api
 ### Available core packages
 
 `kubectl`, `kubeadm`, `kubelet`, `kube-apiserver`, `kube-controller-manager`, `kube-scheduler`, `kube-proxy`
+
+### Available dependency packages
+
+`deps.etcd`, `deps.etcdctl`, `deps.etcdutl`
 
 ### Available SIG packages
 

@@ -264,5 +264,112 @@
         }
       }
     }
+  ],
+  "deps": [
+    {
+      "name": "etcd",
+      "owner": "etcd-io",
+      "repo": "etcd",
+      "path": "etcd/etcd",
+      "modRoot": "./server",
+      "minors": {
+        "1.34": "3.6.5",
+        "1.35": "3.6.6",
+        "1.36": "3.6.8",
+        "1.37": "3.7.0"
+      },
+      "versions": {
+        "3.6.5": {
+          "commit": "a0614505aff9b8ff469e9c59c2d979a5936d13f4",
+          "srcHash": "sha256-d0Ujg9ynnnSW0PYYYrNEmPtLnYW2HcCl+zcVo8ACiS0=",
+          "vendorHash": "sha256-OtWpX5A+kyQej2bueTqmNf62oKmXGQzjexzXlK/XJms="
+        },
+        "3.6.6": {
+          "commit": "d2809cf0019f84c221e026bb2ac6486d011b1d91",
+          "srcHash": "sha256-MFkO2Rv38TQeREJ3zHgRdj3thnMK0ci3laEjn4CaXHs=",
+          "vendorHash": "sha256-0uPIw2T9ZrR92MBB1xBBfbqXQUVg6sNDu8F5m1C+lEQ="
+        },
+        "3.6.8": {
+          "commit": "4e814e204934c3c682d9e185db1dfb646d2510b3",
+          "srcHash": "sha256-dNoQ+KKHZoi9GAqjyKPOpEJUwN6FID1tKfMiMknG7Dc=",
+          "vendorHash": "sha256-4vz63r05uZOzFQYA9jz9HLsQEDFL30cOETmV/AZanmY="
+        },
+        "3.7.0": {
+          "commit": "4d71f7c83a2cef992d57abd3284edfaf66c91a4a",
+          "srcHash": "sha256-53MkASU9lfnTivu+dniBXSSbH/Vs1rsuydQ+RYlX3T0=",
+          "vendorHash": "sha256-BcHYTDXKK+J7fSpaYXYkbW8HSfHvqDjQzvlq2KovNhA="
+        }
+      }
+    },
+    {
+      "name": "etcdctl",
+      "owner": "etcd-io",
+      "repo": "etcd",
+      "path": "etcd/etcdctl",
+      "modRoot": "./etcdctl",
+      "minors": {
+        "1.34": "3.6.5",
+        "1.35": "3.6.6",
+        "1.36": "3.6.8",
+        "1.37": "3.7.0"
+      },
+      "versions": {
+        "3.6.5": {
+          "commit": "a0614505aff9b8ff469e9c59c2d979a5936d13f4",
+          "srcHash": "sha256-d0Ujg9ynnnSW0PYYYrNEmPtLnYW2HcCl+zcVo8ACiS0=",
+          "vendorHash": "sha256-5r3Q+AfWp23tzbYQoD1hXEzRttJrUUKQSpcEV3GIlOE="
+        },
+        "3.6.6": {
+          "commit": "d2809cf0019f84c221e026bb2ac6486d011b1d91",
+          "srcHash": "sha256-MFkO2Rv38TQeREJ3zHgRdj3thnMK0ci3laEjn4CaXHs=",
+          "vendorHash": "sha256-VxR/pPS/HR4EBPJJmQin7XqS5MvWreJe2dlOpQn3pqY="
+        },
+        "3.6.8": {
+          "commit": "4e814e204934c3c682d9e185db1dfb646d2510b3",
+          "srcHash": "sha256-dNoQ+KKHZoi9GAqjyKPOpEJUwN6FID1tKfMiMknG7Dc=",
+          "vendorHash": "sha256-lxFvpEGsp/HS0p54JrjBps7C/c7QR2QFQXU81sO9cPU="
+        },
+        "3.7.0": {
+          "commit": "4d71f7c83a2cef992d57abd3284edfaf66c91a4a",
+          "srcHash": "sha256-53MkASU9lfnTivu+dniBXSSbH/Vs1rsuydQ+RYlX3T0=",
+          "vendorHash": "sha256-bf2KrQhvNFY2PAgfQWnDo16qPkIoG7KTcsCqqUn9TYM="
+        }
+      }
+    },
+    {
+      "name": "etcdutl",
+      "owner": "etcd-io",
+      "repo": "etcd",
+      "path": "etcd/etcdutl",
+      "modRoot": "./etcdutl",
+      "minors": {
+        "1.34": "3.6.5",
+        "1.35": "3.6.6",
+        "1.36": "3.6.8",
+        "1.37": "3.7.0"
+      },
+      "versions": {
+        "3.6.5": {
+          "commit": "a0614505aff9b8ff469e9c59c2d979a5936d13f4",
+          "srcHash": "sha256-d0Ujg9ynnnSW0PYYYrNEmPtLnYW2HcCl+zcVo8ACiS0=",
+          "vendorHash": "sha256-funO7EEJs28w4sk4sHVA/KR1TiHumVKNs0Gn/xFl4ig="
+        },
+        "3.6.6": {
+          "commit": "d2809cf0019f84c221e026bb2ac6486d011b1d91",
+          "srcHash": "sha256-MFkO2Rv38TQeREJ3zHgRdj3thnMK0ci3laEjn4CaXHs=",
+          "vendorHash": "sha256-xxq9t47985fA9fDvaanq2sPgUDZJDT2w46zp3pggryo="
+        },
+        "3.6.8": {
+          "commit": "4e814e204934c3c682d9e185db1dfb646d2510b3",
+          "srcHash": "sha256-dNoQ+KKHZoi9GAqjyKPOpEJUwN6FID1tKfMiMknG7Dc=",
+          "vendorHash": "sha256-6vzClDji9O2SGnKL3lsv3AUbCt/BicsDy1sPeuPdGXk="
+        },
+        "3.7.0": {
+          "commit": "4d71f7c83a2cef992d57abd3284edfaf66c91a4a",
+          "srcHash": "sha256-53MkASU9lfnTivu+dniBXSSbH/Vs1rsuydQ+RYlX3T0=",
+          "vendorHash": "sha256-6um6K6tjnq7cVz80gkmDmzFtVztl0f9bnO4Jl4xAELg="
+        }
+      }
+    }
   ]
 }
