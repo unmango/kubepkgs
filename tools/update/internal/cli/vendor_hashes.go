@@ -21,9 +21,9 @@ func newVendorHashesCmd() *cobra.Command {
 
 	cmd := &cobra.Command{
 		Use:   "vendor-hashes",
-		Short: "Resolve real Nix vendorHash values for tracked SIG versions",
-		Long: "Resolve real Nix vendorHash values for tracked SIG versions.\n\n" +
-			"Each SIG version is resolved once, no matter how many Kubernetes minors pin it. " +
+		Short: "Resolve real Nix vendorHash values for tracked package versions",
+		Long: "Resolve real Nix vendorHash values for tracked package versions.\n\n" +
+			"Each version is resolved once, no matter how many Kubernetes minors pin it. " +
 			"By default only versions without a resolved hash are built; pass --all to redo every one.",
 		RunE: func(cmd *cobra.Command, _ []string) error {
 			root, err := resolveRepoRoot()
@@ -33,15 +33,16 @@ func newVendorHashesCmd() *cobra.Command {
 			return runVendorHashes(cmd.Context(), packagesPath(root), sigs, versions, all, cmd.ErrOrStderr())
 		},
 	}
-	cmd.Flags().StringSliceVar(&sigs, "sig", nil, "restrict to one or more SIGs (default: all)")
-	cmd.Flags().StringSliceVar(&versions, "version", nil, "restrict to one or more SIG versions (default: all)")
+	cmd.Flags().StringSliceVar(&sigs, "sig", nil, "restrict to one or more packages (default: all)")
+	cmd.Flags().StringSliceVar(&versions, "version", nil, "restrict to one or more package versions (default: all)")
 	cmd.Flags().BoolVar(&all, "all", false, "re-resolve versions that already have a vendorHash")
 	return cmd
 }
 
-// target is one SIG version to resolve, and the minor whose attribute path
-// evaluates to it.
+// target is one package version to resolve, and the minor whose attribute
+// path evaluates to it.
 type target struct {
+	roster     string
 	sig        string
 	version    string
 	buildMinor string
@@ -98,8 +99,7 @@ func selectTargets(f *schema.File, sigFilter, versionFilter []string, all bool) 
 	}
 
 	var targets []target
-	for i := range f.Sigs {
-		sig := &f.Sigs[i]
+	for roster, sig := range f.Packages {
 		if !wanted(sigFilter, sig.Name) {
 			continue
 		}
@@ -115,6 +115,7 @@ func selectTargets(f *schema.File, sigFilter, versionFilter []string, all bool) 
 				return nil, fmt.Errorf("vendor-hashes: %s %s is pinned by no supported minor", sig.Name, version)
 			}
 			targets = append(targets, target{
+				roster:     roster,
 				sig:        sig.Name,
 				version:    version,
 				buildMinor: minor,
@@ -160,7 +161,7 @@ func resolve(ctx context.Context, path, system string, t target) error {
 	buildCtx, stop := signal.NotifyContext(ctx, os.Interrupt, syscall.SIGTERM)
 	defer stop()
 
-	attr := fmt.Sprintf(".#legacyPackages.%s.kubernetes.%q.sigs.%s", system, t.buildMinor, t.sig)
+	attr := fmt.Sprintf(".#legacyPackages.%s.kubernetes.%q.%s.%s", system, t.buildMinor, t.roster, t.sig)
 	hash, found, err := nixtool.ResolveVendorHash(buildCtx, attr)
 
 	switch {

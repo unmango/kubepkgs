@@ -26,46 +26,76 @@ const minorColumn = "Kubernetes"
 // the first one and no other pipe-delimited line may precede it.
 var rowPattern = regexp.MustCompile(`(?m)^\|.*\|$`)
 
-// Render replaces the supported-versions table in doc with one generated
-// from f, preserving everything around it.
+// Render replaces the version tables in doc with ones generated from f,
+// preserving everything around them. The first table lists the SIG pins; when
+// f tracks dependencies, the second lists those. Documents are rewritten back
+// to front so replacing one table does not shift the next one's offsets.
 func Render(doc string, f *schema.File) (string, error) {
-	rows := rowPattern.FindAllStringIndex(doc, -1)
-	if len(rows) < 3 {
+	wanted := []([]string){f.SigNames()}
+	if len(f.Deps) > 0 {
+		wanted = append(wanted, f.DepNames())
+	}
+
+	tables := findTables(doc)
+	switch {
+	case len(tables) == 0:
 		return "", fmt.Errorf("readme: no supported-versions table found")
+	case len(tables) < len(wanted):
+		return "", fmt.Errorf("readme: found %d version table(s), need %d", len(tables), len(wanted))
 	}
 
-	// Only the first contiguous run of rows is the table; a later unrelated
-	// table in the file must not be swallowed.
-	end := 0
-	for i := 1; i < len(rows); i++ {
-		if strings.TrimSpace(doc[rows[i-1][1]:rows[i][0]]) != "" {
-			break
+	for i := len(wanted) - 1; i >= 0; i-- {
+		roster := f.Sigs
+		if i == 1 {
+			roster = f.Deps
 		}
-		end = i
-	}
+		table, err := Table(f, roster)
+		if err != nil {
+			return "", err
+		}
 
-	table, err := Table(f)
-	if err != nil {
-		return "", err
+		start, end := tables[i][0], tables[i][1]
+		// GFM keeps consuming rows until a blank line, so prose sitting
+		// directly under the last row renders as a final row of the table
+		// rather than as a paragraph. Guarantee the separation instead of
+		// trusting the document to already have it.
+		rest := doc[end:]
+		if trailer := strings.TrimLeft(rest, "\n"); trailer != rest && trailer != "" {
+			rest = "\n\n" + trailer
+		}
+		doc = doc[:start] + table + rest
 	}
-
-	// GFM keeps consuming rows until a blank line, so prose sitting directly
-	// under the last row renders as a final row of the table rather than as a
-	// paragraph. Guarantee the separation instead of trusting the document to
-	// already have it.
-	rest := doc[rows[end][1]:]
-	if trailer := strings.TrimLeft(rest, "\n"); trailer != rest && trailer != "" {
-		rest = "\n\n" + trailer
-	}
-	return doc[:rows[0][0]] + table + rest, nil
+	return doc, nil
 }
 
-// Table renders the supported-versions table, newest minor first. Cells hold
-// the major.minor series of each pin rather than its full version, which is
-// what check_readme compares against and why a patch bump leaves the table
+// findTables returns the [start, end) offsets of each contiguous run of table
+// rows in doc, so runs separated by prose are treated as separate tables
+// rather than one swallowing the next.
+func findTables(doc string) [][2]int {
+	rows := rowPattern.FindAllStringIndex(doc, -1)
+
+	var tables [][2]int
+	for i := 0; i < len(rows); {
+		j := i
+		for j+1 < len(rows) && strings.TrimSpace(doc[rows[j][1]:rows[j+1][0]]) == "" {
+			j++
+		}
+		// A header, a separator and at least one data row; anything shorter is
+		// not one of the version tables.
+		if j-i+1 >= 3 {
+			tables = append(tables, [2]int{rows[i][0], rows[j][1]})
+		}
+		i = j + 1
+	}
+	return tables
+}
+
+// Table renders one roster's version table, newest minor first. Cells hold the
+// major.minor series of each pin rather than its full version, which is what
+// check_readme compares against and why a patch bump leaves the table
 // untouched.
-func Table(f *schema.File) (string, error) {
-	header := append([]string{minorColumn}, f.SigNames()...)
+func Table(f *schema.File, roster []schema.Sig) (string, error) {
+	header := append([]string{minorColumn}, names(roster)...)
 
 	cells := [][]string{header}
 	for _, minor := range slices.Backward(schema.MinorOrder(f.Supported)) {
@@ -74,7 +104,7 @@ func Table(f *schema.File) (string, error) {
 			label += " (latest)"
 		}
 		row := []string{label}
-		for _, sig := range f.Sigs {
+		for _, sig := range roster {
 			pinned, ok := sig.Minors[minor]
 			if !ok {
 				return "", fmt.Errorf("readme: %s has no version for supported minor %q", sig.Name, minor)
@@ -108,6 +138,14 @@ func Table(f *schema.File) (string, error) {
 		writeRow(row)
 	}
 	return strings.TrimSuffix(b.String(), "\n"), nil
+}
+
+func names(roster []schema.Sig) []string {
+	out := make([]string, len(roster))
+	for i, sig := range roster {
+		out[i] = sig.Name
+	}
+	return out
 }
 
 // series is the major.minor of a pinned version, as check_readme computes it:

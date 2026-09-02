@@ -39,7 +39,7 @@ func newGenerateHashesCmd() *cobra.Command {
 		},
 	}
 	cmd.Flags().StringSliceVar(&targets, "target", nil,
-		"targets to refresh: "+kubernetesTarget+" or a SIG name (default: all)")
+		"targets to refresh: "+kubernetesTarget+" or a package name (default: all)")
 	cmd.Flags().BoolVar(&dryRun, "dry-run", false, "report what would change without writing packages.json")
 	cmd.Flags().BoolVar(&force, "force", false, "refetch records that already have a srcHash and commit")
 	return cmd
@@ -58,7 +58,7 @@ func runGenerateHashes(ctx context.Context, gh *ghclient.Client, path string, ta
 	}
 
 	if len(targets) == 0 {
-		targets = append([]string{kubernetesTarget}, f.SigNames()...)
+		targets = append(append([]string{kubernetesTarget}, f.SigNames()...), f.DepNames()...)
 	}
 	for _, target := range targets {
 		if target == kubernetesTarget {
@@ -66,7 +66,7 @@ func runGenerateHashes(ctx context.Context, gh *ghclient.Client, path string, ta
 		}
 		if _, ok := f.Sig(target); !ok {
 			return fmt.Errorf("generate-hashes: unknown target %q (known: %s)",
-				target, strings.Join(append([]string{kubernetesTarget}, f.SigNames()...), ", "))
+				target, strings.Join(append(append([]string{kubernetesTarget}, f.SigNames()...), f.DepNames()...), ", "))
 		}
 	}
 
@@ -103,7 +103,7 @@ func runGenerateHashes(ctx context.Context, gh *ghclient.Client, path string, ta
 		}
 
 		sig, _ := f.Sig(target)
-		// Keyed by SIG version, so a version shared by several minors is
+		// Keyed by package version, so a version shared by several minors is
 		// fetched once rather than once per minor.
 		for _, version := range sigVersionsInUse(f, sig) {
 			if !force && !sig.Versions[version].NeedsFetch() {

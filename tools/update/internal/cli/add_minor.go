@@ -32,8 +32,8 @@ func newAddMinorCmd() *cobra.Command {
 		Short: "Start tracking a new Kubernetes minor, retiring the oldest",
 		Long: "Start tracking a new Kubernetes minor, retiring the oldest.\n\n" +
 			"Without an argument the newest minor upstream is adopted, and the command is a no-op " +
-			"when that is one already tracked. The new minor inherits its SIG pins verbatim from the " +
-			"newest minor already supported, so moving a SIG to a new version stays a separate change. " +
+			"when that is one already tracked. The new minor inherits its package pins verbatim from the " +
+			"newest minor already supported, so moving a package to a new version stays a separate change. " +
 			"Hashes are left empty for generate-hashes to fill; the tree does not pass `nix flake check` " +
 			"until generate-hashes and vendor-hashes have run.",
 		Args: cobra.MaximumNArgs(1),
@@ -95,8 +95,8 @@ func runAddMinor(
 	if err := f.AddMinor(minor, version); err != nil {
 		return fmt.Errorf("add-minor: %w", err)
 	}
-	fmt.Fprintf(stderr, "kubernetes %s: %s (new, inheriting SIG pins from %s)\n", minor, version, inherit)
-	for _, sig := range f.Sigs {
+	fmt.Fprintf(stderr, "kubernetes %s: %s (new, inheriting package pins from %s)\n", minor, version, inherit)
+	for _, sig := range f.Packages {
 		fmt.Fprintf(stderr, "  %s %s: %s\n", sig.Name, minor, sig.Minors[minor])
 	}
 
@@ -118,7 +118,7 @@ func runAddMinor(
 			moves[retired] = oldest
 		}
 		if pruned := f.Prune(); pruned > 0 {
-			fmt.Fprintf(stderr, "packages.json: pruned %d orphaned SIG version record(s)\n", pruned)
+			fmt.Fprintf(stderr, "packages.json: pruned %d orphaned package version record(s)\n", pruned)
 		}
 	}
 

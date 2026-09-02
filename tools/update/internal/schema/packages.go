@@ -47,9 +47,13 @@ type Sig struct {
 	// not the usual "v". cluster-autoscaler tags "cluster-autoscaler-1.36.1",
 	// kustomize tags "kustomize/v5.8.1".
 	TagPrefix string `json:"tagPrefix,omitempty"`
-	// Subdir is the directory within the repository the module lives in, for
-	// projects that share a repository with their siblings.
+	// Subdir narrows the fetched source to a directory within the repository,
+	// for projects that share a repository with their siblings.
 	Subdir string `json:"subdir,omitempty"`
+	// ModRoot is the Go module directory to build, relative to the source
+	// root. Unlike Subdir it keeps the whole repository, which a module
+	// depending on its siblings through relative replace directives needs.
+	ModRoot string `json:"modRoot,omitempty"`
 	// Go pins the toolchain this SIG is built with, when the nixpkgs default
 	// does not work. Empty means the default.
 	Go string `json:"go,omitempty"`
@@ -66,13 +70,55 @@ type File struct {
 	Latest     string               `json:"latest"`
 	Kubernetes map[string]CoreEntry `json:"kubernetes"`
 	Sigs       []Sig                `json:"sigs"`
+	Deps       []Sig                `json:"deps,omitempty"`
 }
 
-// Sig returns the tracked SIG with the given name.
-func (f *File) Sig(name string) (*Sig, bool) {
+// Roster names of the tracked package lists. They differ only in what they
+// mean: sigs are Kubernetes SIG projects, deps are the things a control plane
+// needs that Kubernetes does not own. Everything downstream treats them alike,
+// which is why the resolution, hashing and pruning below are written once.
+const (
+	SigRoster = "sigs"
+	DepRoster = "deps"
+)
+
+// Rosters returns every tracked package list paired with its name, in the
+// order packages.json holds them.
+func (f *File) Rosters() []Roster {
+	return []Roster{
+		{Name: SigRoster, Packages: f.Sigs},
+		{Name: DepRoster, Packages: f.Deps},
+	}
+}
+
+// Roster is one named package list.
+type Roster struct {
+	Name     string
+	Packages []Sig
+}
+
+// Packages yields every tracked package across every roster, paired with the
+// roster it belongs to. The pointer is into the File, so callers may mutate.
+func (f *File) Packages(yield func(roster string, sig *Sig) bool) {
 	for i := range f.Sigs {
-		if f.Sigs[i].Name == name {
-			return &f.Sigs[i], true
+		if !yield(SigRoster, &f.Sigs[i]) {
+			return
+		}
+	}
+	for i := range f.Deps {
+		if !yield(DepRoster, &f.Deps[i]) {
+			return
+		}
+	}
+}
+
+// Sig returns the tracked package with the given name, from any roster. Names
+// are unique across rosters; nix/check-consistency.py enforces it, because the
+// CLI's --target and --sig flags are a flat namespace.
+func (f *File) Sig(name string) (*Sig, bool) {
+	for _, sig := range f.Packages {
+		if sig.Name == name {
+			return sig, true
 		}
 	}
 	return nil, false
@@ -104,11 +150,20 @@ func (s *Sig) Tag(version string) string {
 
 // SigNames returns every tracked SIG name, in file order.
 func (f *File) SigNames() []string {
-	names := make([]string, len(f.Sigs))
-	for i, s := range f.Sigs {
-		names[i] = s.Name
+	return names(f.Sigs)
+}
+
+// DepNames returns every tracked dependency name, in file order.
+func (f *File) DepNames() []string {
+	return names(f.Deps)
+}
+
+func names(packages []Sig) []string {
+	out := make([]string, len(packages))
+	for i, s := range packages {
+		out[i] = s.Name
 	}
-	return names
+	return out
 }
 
 // Prune drops Versions records no longer pinned by any supported minor, so a
@@ -116,8 +171,7 @@ func (f *File) SigNames() []string {
 // It returns the number of records removed.
 func (f *File) Prune() int {
 	removed := 0
-	for i := range f.Sigs {
-		sig := &f.Sigs[i]
+	for _, sig := range f.Packages {
 		used := map[string]bool{}
 		for _, minor := range f.Supported {
 			used[sig.Minors[minor]] = true
@@ -178,16 +232,16 @@ func (f *File) AddMinor(minor, version string) error {
 	// cannot be inherited leaves the caller with the File it started with
 	// rather than a half-added minor.
 	inherit, hasInherit := f.Newest()
-	if !hasInherit && len(f.Sigs) > 0 {
-		return fmt.Errorf("schema: cannot add %s: no existing minor to inherit SIG pins from", minor)
+	if !hasInherit && (len(f.Sigs) > 0 || len(f.Deps) > 0) {
+		return fmt.Errorf("schema: cannot add %s: no existing minor to inherit package pins from", minor)
 	}
-	inherited := make([]string, len(f.Sigs))
-	for i, sig := range f.Sigs {
+	inherited := map[string]string{}
+	for _, sig := range f.Packages {
 		pinned, ok := sig.Minors[inherit]
 		if !ok {
 			return fmt.Errorf("schema: cannot add %s: %s has no version for %s to inherit", minor, sig.Name, inherit)
 		}
-		inherited[i] = pinned
+		inherited[sig.Name] = pinned
 	}
 
 	f.Supported = MinorOrder(append(f.Supported, minor))
@@ -195,8 +249,8 @@ func (f *File) AddMinor(minor, version string) error {
 		f.Kubernetes = map[string]CoreEntry{}
 	}
 	f.Kubernetes[minor] = CoreEntry{Version: version}
-	for i := range f.Sigs {
-		f.Sigs[i].Minors[minor] = inherited[i]
+	for _, sig := range f.Packages {
+		sig.Minors[minor] = inherited[sig.Name]
 	}
 
 	if newest, ok := f.Newest(); ok && newest == minor {
@@ -226,8 +280,8 @@ func (f *File) RetireMinor(minor string) error {
 	}
 	f.Supported = remaining
 	delete(f.Kubernetes, minor)
-	for i := range f.Sigs {
-		delete(f.Sigs[i].Minors, minor)
+	for _, sig := range f.Packages {
+		delete(sig.Minors, minor)
 	}
 	return nil
 }
@@ -298,12 +352,12 @@ func Load(path string) (*File, error) {
 	if err := json.Unmarshal(data, &f); err != nil {
 		return nil, fmt.Errorf("schema: parsing %s: %w", path, err)
 	}
-	for i := range f.Sigs {
-		if f.Sigs[i].Minors == nil {
-			f.Sigs[i].Minors = map[string]string{}
+	for _, sig := range f.Packages {
+		if sig.Minors == nil {
+			sig.Minors = map[string]string{}
 		}
-		if f.Sigs[i].Versions == nil {
-			f.Sigs[i].Versions = map[string]SigVersion{}
+		if sig.Versions == nil {
+			sig.Versions = map[string]SigVersion{}
 		}
 	}
 	return &f, nil
@@ -332,7 +386,11 @@ func Save(path string, f *File) error {
 	if err != nil {
 		return err
 	}
-	sigsJSON, err := marshalSigs(f)
+	sigsJSON, err := marshalRoster(f, f.Sigs)
+	if err != nil {
+		return err
+	}
+	depsJSON, err := marshalRoster(f, f.Deps)
 	if err != nil {
 		return err
 	}
@@ -346,19 +404,25 @@ func Save(path string, f *File) error {
 	buf.Write(kubernetesJSON)
 	buf.WriteString(`,"sigs":`)
 	buf.Write(sigsJSON)
+	// deps is omitted while empty so a file that tracks no dependencies looks
+	// exactly as it did before the roster existed.
+	if len(f.Deps) > 0 {
+		buf.WriteString(`,"deps":`)
+		buf.Write(depsJSON)
+	}
 	buf.WriteByte('}')
 
 	return writeIndentedJSON(path, buf.Bytes())
 }
 
-func marshalSigs(f *File) ([]byte, error) {
+func marshalRoster(f *File, packages []Sig) ([]byte, error) {
 	var buf bytes.Buffer
 	buf.WriteByte('[')
-	for i := range f.Sigs {
+	for i := range packages {
 		if i > 0 {
 			buf.WriteByte(',')
 		}
-		sig := &f.Sigs[i]
+		sig := &packages[i]
 
 		minorsJSON, err := marshalOrderedObject(f.Supported, func(minor string) (any, error) {
 			version, ok := sig.Minors[minor]
@@ -384,8 +448,9 @@ func marshalSigs(f *File) ([]byte, error) {
 			Path      string `json:"path"`
 			TagPrefix string `json:"tagPrefix,omitempty"`
 			Subdir    string `json:"subdir,omitempty"`
+			ModRoot   string `json:"modRoot,omitempty"`
 			Go        string `json:"go,omitempty"`
-		}{sig.Name, sig.Owner, sig.Repo, sig.Path, sig.TagPrefix, sig.Subdir, sig.Go})
+		}{sig.Name, sig.Owner, sig.Repo, sig.Path, sig.TagPrefix, sig.Subdir, sig.ModRoot, sig.Go})
 		if err != nil {
 			return nil, err
 		}

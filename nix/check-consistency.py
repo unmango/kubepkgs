@@ -12,6 +12,15 @@ import sys
 
 FAKE_VENDOR_HASH = "sha256-AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA="
 
+ROW = re.compile(r"^\|.*\|$")
+
+
+def rosters(data):
+    """Every tracked package paired with the roster, and directory, it lives in."""
+    for roster in ("sigs", "deps"):
+        for sig in data.get(roster, []):
+            yield roster, sig
+
 
 def check_structure(data, root, fail):
     supported = data["supported"]
@@ -33,10 +42,17 @@ def check_structure(data, root, fail):
     for extra in set(data["kubernetes"]) - set(supported):
         fail(f"kubernetes {extra} is not a supported minor")
 
-    for sig in data["sigs"]:
+    seen = {}
+    for roster, sig in rosters(data):
         name = sig["name"]
 
-        definition = os.path.join(root, "sigs", sig["path"], "default.nix")
+        # The CLI's --target and --sig flags are a flat namespace, so a name
+        # reused across rosters would make them ambiguous.
+        if name in seen:
+            fail(f"{name} is declared in both {seen[name]} and {roster}")
+        seen[name] = roster
+
+        definition = os.path.join(root, roster, sig["path"], "default.nix")
         if not os.path.isfile(definition):
             fail(f"{name} path {sig['path']!r} has no default.nix")
 
@@ -62,31 +78,44 @@ def check_structure(data, root, fail):
             fail(f"{name} {orphan} has a versions record but is pinned by no minor")
 
 
-def check_readme(data, root, fail):
-    """The supported-versions table in the README states the same pins."""
-    text = open(os.path.join(root, "README.md")).read()
+def find_tables(lines):
+    """The [start, end] line index of each contiguous run of table rows."""
+    tables = []
+    i = 0
+    while i < len(lines):
+        if not ROW.match(lines[i]):
+            i += 1
+            continue
+        j = i
+        while j + 1 < len(lines) and ROW.match(lines[j + 1]):
+            j += 1
+        # A header, a separator and at least one data row.
+        if j - i + 1 >= 3:
+            tables.append((i, j))
+        i = j + 1
+    return tables
 
-    rows = re.findall(r"^\|.*\|$", text, re.MULTILINE)
-    if len(rows) < 3:
-        fail("README has no supported-versions table")
-        return
+
+def cells(row):
+    return [c.strip() for c in row.strip("|").split("|")]
+
+
+def check_table(data, lines, bounds, roster, packages, fail):
+    """One roster's table states the same pins as packages.json."""
+    first, last = bounds
+    rows = lines[first:last + 1]
 
     # GFM keeps consuming rows until a blank line, so prose directly under the
     # last row renders as a final row of the table. That is invisible to the
-    # row regex below, which only matches pipe-delimited lines.
-    lines = text.splitlines()
-    last = max(i for i, line in enumerate(lines) if line == rows[-1])
+    # row regex, which only matches pipe-delimited lines.
     if last + 1 < len(lines) and lines[last + 1].strip():
-        fail(f"README table is followed by {lines[last + 1].strip()[:40]!r} with no blank "
-             "line, which renders as a trailing table row")
-
-    def cells(row):
-        return [c.strip() for c in row.strip("|").split("|")]
+        fail(f"README {roster} table is followed by {lines[last + 1].strip()[:40]!r} with no "
+             "blank line, which renders as a trailing table row")
 
     header = cells(rows[0])[1:]
-    expected_header = [sig["name"] for sig in data["sigs"]]
+    expected_header = [sig["name"] for sig in packages]
     if header != expected_header:
-        fail(f"README table columns {header} do not match packages.json sigs {expected_header}")
+        fail(f"README {roster} table columns {header} do not match packages.json {expected_header}")
         return
 
     documented = {}
@@ -94,26 +123,44 @@ def check_readme(data, root, fail):
         values = cells(row)
         match = re.match(r"\*\*(\S+?)\*\*(?: \(latest\))?$", values[0])
         if not match:
-            fail(f"README table row {values[0]!r} is not formatted as **<minor>** [(latest)]")
+            fail(f"README {roster} table row {values[0]!r} is not formatted as **<minor>** [(latest)]")
             continue
         documented[match.group(1)] = (values[0], values[1:])
 
     if sorted(documented) != sorted(data["supported"]):
-        fail(f"README table rows {sorted(documented)} do not match supported {sorted(data['supported'])}")
+        fail(f"README {roster} table rows {sorted(documented)} do not match "
+             f"supported {sorted(data['supported'])}")
 
     for minor, (label, values) in documented.items():
         if minor not in data["kubernetes"]:
             continue
         marked_latest = "(latest)" in label
         if marked_latest != (minor == data["latest"]):
-            fail(f"README marks {minor} as latest" if marked_latest
-                 else f"README does not mark {minor} as latest")
-        for sig, documented_version in zip(data["sigs"], values):
+            fail(f"README {roster} table marks {minor} as latest" if marked_latest
+                 else f"README {roster} table does not mark {minor} as latest")
+        for sig, documented_version in zip(packages, values):
             pinned = sig["minors"][minor]
             series = ".".join(pinned.split(".")[:2])
             if documented_version != series:
                 fail(f"README says {sig['name']} {documented_version} for {minor}, "
                      f"packages.json pins {pinned}")
+
+
+def check_readme(data, root, fail):
+    """One README table per roster, each stating the same pins as packages.json."""
+    lines = open(os.path.join(root, "README.md")).read().splitlines()
+
+    expected = [("sigs", data["sigs"])]
+    if data.get("deps"):
+        expected.append(("deps", data["deps"]))
+
+    tables = find_tables(lines)
+    if len(tables) < len(expected):
+        fail(f"README has {len(tables)} version table(s), expected {len(expected)}")
+        return
+
+    for bounds, (roster, packages) in zip(tables, expected):
+        check_table(data, lines, bounds, roster, packages, fail)
 
 
 # The two ways the docs name a Kubernetes minor: an attribute path and a flake
@@ -140,7 +187,7 @@ def check_go_pins(data, fail):
         if pinned is not None and not GO_PIN.match(pinned):
             fail(f"kubernetes {minor} pins go {pinned!r}, expected a minor series like \"1.26\"")
 
-    for sig in data["sigs"]:
+    for _, sig in rosters(data):
         pinned = sig.get("go")
         if pinned is not None and not GO_PIN.match(pinned):
             fail(f"{sig['name']} pins go {pinned!r}, expected a minor series like \"1.26\"")

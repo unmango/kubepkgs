@@ -55,13 +55,15 @@ nix build '.#legacyPackages.x86_64-linux.kubernetes."1.34".sigs.cluster-api'
 
 **`packages.json`**: the single source of truth. Holds the supported minors, `latest`, each minor's Kubernetes version + `srcHash` + `commit`, and one record per tracked SIG.
 
-A SIG record carries `owner` and `path` (so the roster of SIG packages is data, not a hardcoded attrset), a `minors` map pinning a SIG version per Kubernetes minor, and a `versions` map of hashes keyed by *the SIG's own version*. Four optional fields cover projects that do not fit the common shape: `repo` when the repository is not named after the project (cluster-autoscaler lives in `kubernetes/autoscaler`), `tagPrefix` when a release tag is not `v` + version (`cluster-autoscaler-1.36.1`, `kustomize/v5.8.1`), `subdir` when the module sits inside a shared repository, and `go` when the nixpkgs default toolchain does not build it. A `kubernetes` record takes `go` too. Two minors that pin the same SIG version therefore share one hash record, and `vendorHash` is resolved once per SIG version rather than once per minor.
+A SIG record carries `owner` and `path` (so the roster of SIG packages is data, not a hardcoded attrset), a `minors` map pinning a SIG version per Kubernetes minor, and a `versions` map of hashes keyed by *the SIG's own version*. Five optional fields cover projects that do not fit the common shape: `repo` when the repository is not named after the project (cluster-autoscaler lives in `kubernetes/autoscaler`), `tagPrefix` when a release tag is not `v` + version (`cluster-autoscaler-1.36.1`, `kustomize/v5.8.1`), `subdir` when the module sits inside a shared repository, `modRoot` when the module to build is inside the source but the rest of the repository must stay (a module that `replace`s its siblings by relative path needs this and *not* `subdir`, which would narrow the source and break those replaces), and `go` when the nixpkgs default toolchain does not build it. A `kubernetes` record takes `go` too.
+
+**Rosters.** Tracked packages live in one of two arrays: `sigs` for Kubernetes SIG projects, `deps` for things a control plane needs that Kubernetes does not own. They differ only in meaning and in which directory holds the definitions (`sigs/` or `deps/`); resolution, hashing, pruning, the README table, and the consistency check are written once and parameterised by the roster. Names must be unique across both, since the CLI's `--target` and `--sig` flags are a flat namespace. Packages are exposed as `legacyPackages.kubernetes."1.XX".sigs.<name>` and `.deps.<name>`. Two minors that pin the same SIG version therefore share one hash record, and `vendorHash` is resolved once per SIG version rather than once per minor.
 
 **`releases.nix`**: reads `packages.json` and resolves it per minor, looking each SIG's hashes up by the version that minor pins.
 
 **`mk-release.nix`**: takes one release entry from `releases.nix`, fetches the kubernetes/kubernetes source, calls `core/default.nix` for core binaries, then maps each SIG entry through `callPackage (./sigs + "/${sig.path}")`. It fetches each SIG's source itself and passes the result down as `src`, the same way core receives one, so the package definitions carry no fetching or tag-scheme logic.
 
-**`flake.nix`**: maps `releases.nix` through `mkRelease` to produce `legacyPackages.kubernetes`, wires up `treefmt` (nixfmt), derives `checks` from the same data (every core binary for `latest`, kubectl for each older supported minor, one build per distinct SIG version so minors sharing a SIG version are not built twice, plus `consistency`), exposes the `update` package (`nix/updater.nix`, the `tools/update` Go CLI packaged via `gomod2nix`'s `buildGoApplication`), and exposes `devShells.default` (gnumake + nixfmt + nix-prefetch-github + go + the `gomod2nix` CLI).
+**`flake.nix`**: maps `releases.nix` through `mkRelease` to produce `legacyPackages.kubernetes`, wires up `treefmt` (nixfmt), derives `checks` from the same data (every core binary for `latest`, kubectl for each older supported minor, one build per distinct package version per roster so minors sharing a version are not built twice, plus `consistency`), exposes the `update` package (`nix/updater.nix`, the `tools/update` Go CLI packaged via `gomod2nix`'s `buildGoApplication`), and exposes `devShells.default` (gnumake + nixfmt + nix-prefetch-github + go + the `gomod2nix` CLI).
 
 **`tools/update/`**: first-party Go module implementing the update lifecycle (`add-minor`, `fetch-versions`, `generate-hashes`, `vendor-hashes` cobra subcommands of a single `kubepkgs-update` binary). Packaged separately from core/sigs via `gomod2nix`/`buildGoApplication` (unrelated to the `buildGoModule` setup used for core/sigs, that migration, per commit `5025cf4`, is settled and unaffected by this).
 
@@ -92,10 +94,10 @@ Each stage does only outstanding work. A Kubernetes record's `srcHash`/`commit` 
 
 Moving a SIG to a new version stays a separate, deliberate edit to `packages.json`. The `update` workflow runs step 1 and 2 weekly and opens a PR.
 
-## Adding a new SIG package
+## Adding a new package
 
-1. Create `sigs/<category>/<project>/default.nix` following the pattern of existing SIG packages. It takes `src` and `repo` as arguments rather than fetching anything itself.
-2. Append an entry to `sigs` in `packages.json` with `name`, `owner`, `path` (relative to `sigs/`), and a `minors` map pinning a version per supported minor. Add `repo`, `tagPrefix`, `subdir`, or `go` if the project does not follow the common shape. Leave `versions` as `{}`.
+1. Create `sigs/<category>/<project>/default.nix`, or `deps/<project>/default.nix` for a non-Kubernetes dependency, following the pattern of the existing packages. It takes `src` and `repo` as arguments rather than fetching anything itself.
+2. Append an entry to `sigs` or `deps` in `packages.json` with `name`, `owner`, `path` (relative to `sigs/`), and a `minors` map pinning a version per supported minor. Add `repo`, `tagPrefix`, `subdir`, or `go` if the project does not follow the common shape. Leave `versions` as `{}`.
 3. Run `make generate-hashes`, then `make vendor-hashes`, then `make sync-docs` to add the README column.
 
 No Nix needs editing: `mk-release.nix` maps over whatever `packages.json` declares.

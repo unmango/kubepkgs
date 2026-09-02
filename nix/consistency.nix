@@ -18,6 +18,7 @@ runCommand "kubepkgs-consistency"
         ".github/copilot-instructions.md"
         "nix/check-consistency.py"
         "sigs/**/default.nix"
+        "deps/**/default.nix"
       ];
     };
     nativeBuildInputs = [ python3 ];

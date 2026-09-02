@@ -38,7 +38,7 @@ func fixture() *schema.File {
 
 var _ = Describe("Table", func() {
 	It("names the SIG columns in packages.json order", func() {
-		table, err := readme.Table(fixture())
+		table, err := readme.Table(fixture(), fixture().Sigs)
 		Expect(err).NotTo(HaveOccurred())
 
 		Expect(cells(rowPattern.FindAllString(table, -1)[0])).To(
@@ -46,7 +46,7 @@ var _ = Describe("Table", func() {
 	})
 
 	It("lists minors newest first and marks exactly one latest", func() {
-		table, err := readme.Table(fixture())
+		table, err := readme.Table(fixture(), fixture().Sigs)
 		Expect(err).NotTo(HaveOccurred())
 
 		rows := rowPattern.FindAllString(table, -1)[2:]
@@ -55,7 +55,7 @@ var _ = Describe("Table", func() {
 	})
 
 	It("shows the major.minor series rather than the pinned version", func() {
-		table, err := readme.Table(fixture())
+		table, err := readme.Table(fixture(), fixture().Sigs)
 		Expect(err).NotTo(HaveOccurred())
 
 		Expect(cells(rowPattern.FindAllString(table, -1)[2])).To(
@@ -66,7 +66,7 @@ var _ = Describe("Table", func() {
 		f := fixture()
 		Expect(f.AddMinor("1.37", "1.37.0")).To(Succeed())
 
-		table, err := readme.Table(f)
+		table, err := readme.Table(f, f.Sigs)
 		Expect(err).NotTo(HaveOccurred())
 
 		rows := rowPattern.FindAllString(table, -1)[2:]
@@ -78,7 +78,7 @@ var _ = Describe("Table", func() {
 		f := fixture()
 		delete(f.Sigs[0].Minors, "1.35")
 
-		_, err := readme.Table(f)
+		_, err := readme.Table(f, f.Sigs)
 		Expect(err).To(MatchError(ContainSubstring("cluster-api has no version")))
 	})
 })
@@ -140,5 +140,47 @@ var _ = Describe("Retarget", func() {
 	It("leaves versions that only look like minors alone", func() {
 		Expect(readme.Retarget("cluster-api 1.36 is pinned", moves)).To(
 			Equal("cluster-api 1.36 is pinned"))
+	})
+})
+
+var _ = Describe("Render with a deps roster", func() {
+	const doc = "# kubepkgs\n\n## Supported versions\n\n" +
+		"| Kubernetes | cluster-api |\n| ---------- | ----------- |\n| **1.34** (latest) | 1.9 |\n\n" +
+		"Exact patch versions are pinned in `packages.json`.\n\n" +
+		"| Kubernetes | etcd |\n| ---------- | ---- |\n| **1.34** (latest) | 3.5 |\n\n" +
+		"## Usage\n"
+
+	withDeps := func() *schema.File {
+		f := fixture()
+		f.Deps = []schema.Sig{
+			{Name: "etcd", Minors: map[string]string{"1.35": "3.6.6", "1.36": "3.6.8"}},
+		}
+		return f
+	}
+
+	It("rewrites both tables", func() {
+		out, err := readme.Render(doc, withDeps())
+		Expect(err).NotTo(HaveOccurred())
+
+		tables := strings.Split(out, "Exact patch versions")
+		Expect(tables).To(HaveLen(2))
+		Expect(tables[0]).To(ContainSubstring("| Kubernetes        | cluster-api | metrics-server |"))
+		Expect(tables[1]).To(ContainSubstring("| Kubernetes        | etcd |"))
+		Expect(tables[1]).To(ContainSubstring("| **1.36** (latest) | 3.6  |"))
+	})
+
+	It("leaves the prose between the tables alone", func() {
+		out, err := readme.Render(doc, withDeps())
+		Expect(err).NotTo(HaveOccurred())
+
+		Expect(out).To(ContainSubstring("Exact patch versions are pinned in `packages.json`."))
+		Expect(out).To(HaveSuffix("## Usage\n"))
+	})
+
+	It("reports a document missing the deps table", func() {
+		single := "# k\n\n| Kubernetes | cluster-api |\n| --- | --- |\n| **1.34** (latest) | 1.9 |\n\ndone\n"
+
+		_, err := readme.Render(single, withDeps())
+		Expect(err).To(MatchError(ContainSubstring("found 1 version table(s), need 2")))
 	})
 })
