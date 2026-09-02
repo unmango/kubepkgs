@@ -13,10 +13,10 @@ Nix flake exposing versioned Kubernetes package sets. Each Kubernetes minor vers
 
 | Kubernetes        | cluster-api | kube-state-metrics | metrics-server | external-dns |
 | ----------------- | ----------- | ------------------ | -------------- | ------------ |
-| **1.36** (latest) | 1.10        | 2.14               | 0.7            | 0.15         |
+| **1.37** (latest) | 1.10        | 2.14               | 0.7            | 0.15         |
+| **1.36**          | 1.10        | 2.14               | 0.7            | 0.15         |
 | **1.35**          | 1.9         | 2.14               | 0.7            | 0.15         |
 | **1.34**          | 1.9         | 2.13               | 0.7            | 0.15         |
-| **1.33**          | 1.8         | 2.13               | 0.7            | 0.14         |
 Exact patch versions are pinned in `packages.json` (the table above shows only major/minor).
 
 
@@ -35,8 +35,8 @@ Then reference packages via `legacyPackages`:
 kubepkgs.legacyPackages.x86_64-linux.kubernetes.latest.kubectl
 
 # Specific minor version
-kubepkgs.legacyPackages.x86_64-linux.kubernetes."1.36".kubectl
-kubepkgs.legacyPackages.x86_64-linux.kubernetes."1.33".sigs.cluster-api
+kubepkgs.legacyPackages.x86_64-linux.kubernetes."1.37".kubectl
+kubepkgs.legacyPackages.x86_64-linux.kubernetes."1.34".sigs.cluster-api
 ```
 
 ### Available core packages

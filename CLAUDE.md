@@ -41,8 +41,8 @@ Narrower runs go through the CLI directly, e.g. `nix run .#update -- generate-ha
 Build a specific package directly:
 
 ```bash
-nix build '.#legacyPackages.x86_64-linux.kubernetes."1.36".kubectl'
-nix build '.#legacyPackages.x86_64-linux.kubernetes."1.33".sigs.cluster-api'
+nix build '.#legacyPackages.x86_64-linux.kubernetes."1.37".kubectl'
+nix build '.#legacyPackages.x86_64-linux.kubernetes."1.34".sigs.cluster-api'
 ```
 
 ## Architecture
