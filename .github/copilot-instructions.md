@@ -23,10 +23,10 @@ make update                # nix flake update
 Build one package directly (quote the attr path):
 
 ```bash
-nix build '.#legacyPackages.x86_64-linux.kubernetes."1.36".kubectl'
-nix build '.#legacyPackages.x86_64-linux.kubernetes."1.33".sigs.cluster-api'
+nix build '.#legacyPackages.x86_64-linux.kubernetes."1.37".kubectl'
+nix build '.#legacyPackages.x86_64-linux.kubernetes."1.34".sigs.cluster-api'
 # a single check by name (quote it, the names contain dots):
-nix build '.#checks.x86_64-linux."core-1.33-kubectl"'
+nix build '.#checks.x86_64-linux."core-1.34-kubectl"'
 nix build '.#checks.x86_64-linux."sig-cluster-api-1.9.11"'
 ```
 
