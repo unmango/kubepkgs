@@ -223,6 +223,21 @@ var _ = Describe("AddMinor", func() {
 		Expect(f.Latest).To(Equal("1.36"))
 	})
 
+	It("leaves the file untouched when a SIG pin cannot be inherited", func() {
+		f := load()
+		delete(f.Sigs[0].Minors, "1.36")
+		supported := append([]string(nil), f.Supported...)
+
+		Expect(f.AddMinor("1.37", "1.37.0")).To(
+			MatchError(ContainSubstring("has no version for 1.36 to inherit")))
+
+		Expect(f.Supported).To(Equal(supported))
+		Expect(f.Kubernetes).NotTo(HaveKey("1.37"))
+		for _, sig := range f.Sigs {
+			Expect(sig.Minors).NotTo(HaveKey("1.37"), sig.Name)
+		}
+	})
+
 	It("refuses a minor that is already tracked", func() {
 		f := load()
 

@@ -50,7 +50,7 @@ func newAddMinorCmd() *cobra.Command {
 				root, minor, dryRun, noRetire, cmd.ErrOrStderr())
 		},
 	}
-	cmd.Flags().BoolVar(&dryRun, "dry-run", false, "report what would change without writing packages.json")
+	cmd.Flags().BoolVar(&dryRun, "dry-run", false, "report what would change without writing packages.json or the docs")
 	cmd.Flags().BoolVar(&noRetire, "no-retire", false, "keep the oldest minor instead of retiring it, widening the supported window")
 	return cmd
 }
@@ -71,6 +71,9 @@ func runAddMinor(
 	if minor == "" {
 		if minor, err = gh.LatestMinor(ctx, "kubernetes", "kubernetes"); err != nil {
 			return fmt.Errorf("add-minor: discovering the newest minor: %w", err)
+		}
+		if minor == "" {
+			return fmt.Errorf("add-minor: kubernetes/kubernetes has no published stable release to discover a minor from")
 		}
 		if _, tracked := f.Kubernetes[minor]; tracked {
 			fmt.Fprintf(stderr, "kubernetes %s: newest upstream, already tracked\n", minor)

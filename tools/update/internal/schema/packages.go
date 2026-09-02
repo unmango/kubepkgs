@@ -133,24 +133,30 @@ func (f *File) AddMinor(minor, version string) error {
 	if _, ok := f.Kubernetes[minor]; ok {
 		return fmt.Errorf("schema: kubernetes %s is already tracked", minor)
 	}
+
+	// Resolve every inherited pin before touching the File, so a SIG that
+	// cannot be inherited leaves the caller with the File it started with
+	// rather than a half-added minor.
 	inherit, hasInherit := f.Newest()
+	if !hasInherit && len(f.Sigs) > 0 {
+		return fmt.Errorf("schema: cannot add %s: no existing minor to inherit SIG pins from", minor)
+	}
+	inherited := make([]string, len(f.Sigs))
+	for i, sig := range f.Sigs {
+		pinned, ok := sig.Minors[inherit]
+		if !ok {
+			return fmt.Errorf("schema: cannot add %s: %s has no version for %s to inherit", minor, sig.Name, inherit)
+		}
+		inherited[i] = pinned
+	}
 
 	f.Supported = MinorOrder(append(f.Supported, minor))
 	if f.Kubernetes == nil {
 		f.Kubernetes = map[string]CoreEntry{}
 	}
 	f.Kubernetes[minor] = CoreEntry{Version: version}
-
 	for i := range f.Sigs {
-		sig := &f.Sigs[i]
-		if !hasInherit {
-			return fmt.Errorf("schema: cannot add %s: no existing minor to inherit %s from", minor, sig.Name)
-		}
-		pinned, ok := sig.Minors[inherit]
-		if !ok {
-			return fmt.Errorf("schema: cannot add %s: %s has no version for %s to inherit", minor, sig.Name, inherit)
-		}
-		sig.Minors[minor] = pinned
+		f.Sigs[i].Minors[minor] = inherited[i]
 	}
 
 	if newest, ok := f.Newest(); ok && newest == minor {
