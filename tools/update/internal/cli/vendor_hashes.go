@@ -21,9 +21,9 @@ func newVendorHashesCmd() *cobra.Command {
 
 	cmd := &cobra.Command{
 		Use:   "vendor-hashes",
-		Short: "Resolve real Nix vendorHash values for tracked SIG versions",
-		Long: "Resolve real Nix vendorHash values for tracked SIG versions.\n\n" +
-			"Each SIG version is resolved once, no matter how many Kubernetes minors pin it. " +
+		Short: "Resolve real Nix vendorHash values for tracked package versions",
+		Long: "Resolve real Nix vendorHash values for tracked package versions.\n\n" +
+			"Each version is resolved once, no matter how many Kubernetes minors pin it. " +
 			"By default only versions without a resolved hash are built; pass --all to redo every one.",
 		RunE: func(cmd *cobra.Command, _ []string) error {
 			root, err := resolveRepoRoot()
@@ -34,7 +34,7 @@ func newVendorHashesCmd() *cobra.Command {
 		},
 	}
 	cmd.Flags().StringSliceVar(&sigs, "sig", nil, "restrict to one or more packages (default: all)")
-	cmd.Flags().StringSliceVar(&versions, "version", nil, "restrict to one or more SIG versions (default: all)")
+	cmd.Flags().StringSliceVar(&versions, "version", nil, "restrict to one or more package versions (default: all)")
 	cmd.Flags().BoolVar(&all, "all", false, "re-resolve versions that already have a vendorHash")
 	return cmd
 }

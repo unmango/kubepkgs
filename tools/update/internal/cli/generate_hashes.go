@@ -103,7 +103,7 @@ func runGenerateHashes(ctx context.Context, gh *ghclient.Client, path string, ta
 		}
 
 		sig, _ := f.Sig(target)
-		// Keyed by SIG version, so a version shared by several minors is
+		// Keyed by package version, so a version shared by several minors is
 		// fetched once rather than once per minor.
 		for _, version := range sigVersionsInUse(f, sig) {
 			if !force && !sig.Versions[version].NeedsFetch() {

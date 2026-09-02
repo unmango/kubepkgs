@@ -18,7 +18,7 @@ func newSyncDocsCmd() *cobra.Command {
 		Short: "Regenerate the README's supported-versions table from packages.json",
 		Long: "Regenerate the README's supported-versions table from packages.json.\n\n" +
 			"add-minor already does this for the changes it makes. Run this after any other edit " +
-			"to packages.json that the table reflects, such as adding a SIG or moving one to a new " +
+			"to packages.json that the table reflects, such as adding a package or moving one to a new " +
 			"version. nix/check-consistency.py stays the independent verifier of the result.",
 		RunE: func(cmd *cobra.Command, _ []string) error {
 			root, err := resolveRepoRoot()
