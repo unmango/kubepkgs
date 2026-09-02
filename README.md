@@ -35,7 +35,7 @@ Then reference packages via `legacyPackages`:
 kubepkgs.legacyPackages.x86_64-linux.kubernetes.latest.kubectl
 
 # Specific minor version
-kubepkgs.legacyPackages.x86_64-linux.kubernetes."1.37".kubectl
+kubepkgs.legacyPackages.x86_64-linux.kubernetes."1.36".kubectl
 kubepkgs.legacyPackages.x86_64-linux.kubernetes."1.34".sigs.cluster-api
 ```
 
