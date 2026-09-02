@@ -37,7 +37,7 @@
         "1.34": "1.9.11",
         "1.35": "1.9.11",
         "1.36": "1.10.10",
-        "1.37": "1.10.10"
+        "1.37": "1.14.1"
       },
       "versions": {
         "1.9.11": {
@@ -49,6 +49,11 @@
           "commit": "5757c1c5ddd28861d933277f10fda3aa98538883",
           "srcHash": "sha256-oWlrMABq8kv+2v5odfCNiWv8KzwuqZ1jFbotkcOAvVg=",
           "vendorHash": "sha256-Jbn/R1ugcxdJVSGCiS9qxaf8A1/3OZnOHrI8G3pa584="
+        },
+        "1.14.1": {
+          "commit": "72ec15079db2b5ef4c624437ec241a6eb942f1e0",
+          "srcHash": "sha256-soGYa26kUOrt7oBwQxnYdTwLfvYN6KgsthCbDqpFE7Q=",
+          "vendorHash": "sha256-B6nWwlKrfnkkUf3ZtUPA9A82DJQ9qJJeTpz7leDGwT8="
         }
       }
     },
@@ -60,7 +65,7 @@
         "1.34": "2.13.0",
         "1.35": "2.14.0",
         "1.36": "2.14.0",
-        "1.37": "2.14.0"
+        "1.37": "2.20.0"
       },
       "versions": {
         "2.13.0": {
@@ -72,6 +77,11 @@
           "commit": "e763ea2aa37e7fa507775a8506387aaa95ff17d1",
           "srcHash": "sha256-qLn+2znmfIdBkoVkCJ0tFAPVRYc+qAJWKbDP2FqMocg=",
           "vendorHash": "sha256-KyEGmtSQO0EERLb0I7NBmxv1Jz+bYMrCZVwjJ1Jt+Ik="
+        },
+        "2.20.0": {
+          "commit": "4ffeda2ef866b0fef372849825a803296483b336",
+          "srcHash": "sha256-tgPbb7N/ZrIJqJF50kpJ5VOADSHnJ7dprxvL+J81Tjk=",
+          "vendorHash": "sha256-RuX/E/kfVLP+8hk0ixhAZQQuj2+ZXNpquyNNduB8CAA="
         }
       }
     },
@@ -83,13 +93,18 @@
         "1.34": "0.7.2",
         "1.35": "0.7.2",
         "1.36": "0.7.2",
-        "1.37": "0.7.2"
+        "1.37": "0.9.0"
       },
       "versions": {
         "0.7.2": {
           "commit": "096960107da4a1b2e2ec83b2ac3424248cfc0ad5",
           "srcHash": "sha256-EdVph0HgOp6rIv/m3RtquSZq+43X5O8GJzg0zPXFWFI=",
           "vendorHash": "sha256-CyKGtcvuvjhn3eLZHPke3fLcTWt5lIFmsXJNdsOUQWc="
+        },
+        "0.9.0": {
+          "commit": "2a7c4b2c7d46552ff47f4aeaa3a735c582587ecd",
+          "srcHash": "sha256-RITmujmqDGHhhX8uOxchJE1jrIIuuhrjB/GgDHwkmo8=",
+          "vendorHash": "sha256-YaVO5WSm0JoCwJ+9FqxXkgt3jaSz6/LavtFi5OQn+Ao="
         }
       }
     },
@@ -101,13 +116,18 @@
         "1.34": "0.15.1",
         "1.35": "0.15.1",
         "1.36": "0.15.1",
-        "1.37": "0.15.1"
+        "1.37": "0.22.0"
       },
       "versions": {
         "0.15.1": {
           "commit": "c55b1a1127df024b95f927869a1bcd662ec4337a",
           "srcHash": "sha256-BOklu1lQItfHe588lLAmU/Cbzx6sNpiBaY04iynh0uk=",
           "vendorHash": "sha256-baIp/FWpNMxZlWRW3VdvCbe2MDuLj2BCRJm4fWn7KoI="
+        },
+        "0.22.0": {
+          "commit": "994f908d4abdfe5fbf38f2f61613ed570432e43a",
+          "srcHash": "sha256-aXrB1Hqdfb0qKbAuQ2s9p5rX/PWg6e97qFa855XxaOk=",
+          "vendorHash": "sha256-HjRVzWAvUyAB2UwgDmRMTjLil7r8eVdX76D090hrEz0="
         }
       }
     },
