@@ -1,4 +1,4 @@
-"""Validate packages.json against itself, the tree, and the README.
+"""Validate packages.json against itself, the tree, and the docs.
 
 Run standalone from the repo root:
 
@@ -107,6 +107,36 @@ def check_readme(data, root, fail):
                      f"packages.json pins {pinned}")
 
 
+# The two ways the docs name a Kubernetes minor: an attribute path and a flake
+# check name. Both stop resolving once that minor leaves the supported window.
+EXAMPLE_PATTERNS = [
+    r'kubernetes\."(\d+\.\d+)"',
+    r"core-(\d+\.\d+)-",
+]
+
+EXAMPLE_DOCS = [
+    "README.md",
+    "CLAUDE.md",
+    ".github/copilot-instructions.md",
+]
+
+
+def check_docs(data, root, fail):
+    """Version-pinned examples in the docs name a minor that still exists."""
+    supported = set(data["supported"])
+
+    for name in EXAMPLE_DOCS:
+        path = os.path.join(root, name)
+        if not os.path.exists(path):
+            fail(f"{name} is missing")
+            continue
+        text = open(path).read()
+        for pattern in EXAMPLE_PATTERNS:
+            for minor in sorted(set(re.findall(pattern, text))):
+                if minor not in supported:
+                    fail(f"{name} has an example for unsupported minor {minor}")
+
+
 def main(root):
     data = json.load(open(os.path.join(root, "packages.json")))
 
@@ -115,6 +145,7 @@ def main(root):
 
     check_structure(data, root, fail)
     check_readme(data, root, fail)
+    check_docs(data, root, fail)
 
     if errors:
         for error in errors:

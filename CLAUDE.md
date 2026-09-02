@@ -23,6 +23,9 @@ make fmt             # nix fmt  (nixfmt)
 # Update flake inputs
 make update          # nix flake update
 
+# Start tracking the newest Kubernetes minor upstream, retiring the oldest
+make add-minor
+
 # Bump tracked patch versions in packages.json from upstream releases
 make fetch-versions
 
@@ -57,13 +60,17 @@ A SIG record carries `owner` and `path` (so the roster of SIG packages is data, 
 
 **`flake.nix`**: maps `releases.nix` through `mkRelease` to produce `legacyPackages.kubernetes`, wires up `treefmt` (nixfmt), derives `checks` from the same data (every core binary for `latest`, kubectl for each older supported minor, one build per distinct SIG version so minors sharing a SIG version are not built twice, plus `consistency`), exposes the `update` package (`nix/updater.nix`, the `tools/update` Go CLI packaged via `gomod2nix`'s `buildGoApplication`), and exposes `devShells.default` (gnumake + nixfmt + nix-prefetch-github + go + the `gomod2nix` CLI).
 
-**`tools/update/`**: first-party Go module implementing the update lifecycle (`fetch-versions`, `generate-hashes`, `vendor-hashes` cobra subcommands of a single `kubepkgs-update` binary). Packaged separately from core/sigs via `gomod2nix`/`buildGoApplication` (unrelated to the `buildGoModule` setup used for core/sigs, that migration, per commit `5025cf4`, is settled and unaffected by this).
+**`tools/update/`**: first-party Go module implementing the update lifecycle (`add-minor`, `fetch-versions`, `generate-hashes`, `vendor-hashes` cobra subcommands of a single `kubepkgs-update` binary). Packaged separately from core/sigs via `gomod2nix`/`buildGoApplication` (unrelated to the `buildGoModule` setup used for core/sigs, that migration, per commit `5025cf4`, is settled and unaffected by this).
 
 `internal/schema` owns `packages.json`: it is the only writer, and it emits deterministic key order (minors per `supported`, SIG versions per semver) so a regenerated file diffs cleanly.
 
 Each stage does only outstanding work. A Kubernetes record's `srcHash`/`commit` are written together with the version they describe and cleared by `fetch-versions` when that version is bumped, so a populated record is current by construction; SIG records are keyed by the version they describe, so the same holds without any clearing. `generate-hashes` therefore skips populated records and `vendor-hashes` skips resolved ones, making `make update-releases` cheap when little changed. `--force` and `--all` override this.
 
-`fetch-versions` keeps every package inside the minor series it is already pinned to. It does not add a Kubernetes minor, retire one, move `latest`, or move a SIG to a new minor series; those are deliberate edits to `packages.json`.
+`fetch-versions` keeps every package inside the minor series it is already pinned to. It does not add a Kubernetes minor, retire one, or move `latest`, that is `add-minor`'s job; moving a SIG to a new minor series stays a deliberate edit to `packages.json`.
+
+`add-minor` discovers the newest minor upstream via `ghclient.LatestMinor`, which shares `LatestPatch`'s prerelease filter, so a minor is only adopted once its stable `.0` ships. It writes the version and pins but leaves `srcHash`/`commit` empty, which is exactly `CoreEntry.NeedsFetch`, so `generate-hashes` picks the record up with no special casing and `add-minor` never has to touch `nixtool`.
+
+**`internal/readme`**: renders the README's supported-versions table from `packages.json` and retargets version-pinned examples across `README.md`, `CLAUDE.md`, and `.github/copilot-instructions.md`. `nix/check-consistency.py` stays the independent verifier of both, so a generator bug is still caught.
 
 **`nix/consistency.nix`** + **`nix/check-consistency.py`**: the `consistency` check. Validates that `packages.json` agrees with itself (every supported minor has an entry, every pinned SIG version has a complete hash record, no placeholder vendorHash, no orphan records), with the tree (every SIG `path` has a `default.nix`), and with the README's supported-versions table. Runs standalone as `python3 nix/check-consistency.py .`.
 
@@ -75,8 +82,10 @@ Each stage does only outstanding work. A Kubernetes record's `srcHash`/`commit` 
 
 ## Adding a new Kubernetes version
 
-1. Add the minor to `supported` and `kubernetes` in `packages.json`, and add it to every SIG's `minors` map. Update `latest` if it is now the newest. `make fetch-versions` will not do this for you.
-2. Run `make generate-hashes` then `make vendor-hashes`.
+1. `make add-minor` adopts the newest minor upstream, or `nix run .#update -- add-minor 1.38` pins a specific one. It adds the minor to `supported` and `kubernetes`, inherits every SIG pin from the newest minor already supported, moves `latest`, retires the oldest minor (pass `--no-retire` to widen the window instead), regenerates the README table, and retargets version-pinned doc examples.
+2. Run `make generate-hashes` then `make vendor-hashes` to fill the hashes `add-minor` deliberately leaves empty.
+
+Moving a SIG to a new version stays a separate, deliberate edit to `packages.json`. The `update` workflow runs step 1 and 2 weekly and opens a PR.
 
 ## Adding a new SIG package
 
@@ -89,5 +98,7 @@ No Nix needs editing: `mk-release.nix` maps over whatever `packages.json` declar
 ## Dev environment
 
 `direnv` + `use flake` provides the dev shell automatically. GITHUB_TOKEN is exported via `gh auth token` in `.envrc`.
+
+`.github/workflows/update.yml` runs weekly (and on demand), opening one PR for a new minor and a separate one for patch bumps. It does not run `nix flake check` itself; the PR it opens triggers `ci.yml`, which does.
 
 CI runs `nix flake check` on every PR/push to main. That is the whole build matrix: the checks are derived from `packages.json`, so a version bump changes what CI covers with no list to update.

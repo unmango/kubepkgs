@@ -54,6 +54,7 @@ make build                          # build default package (latest kube-apiserv
 make check                          # nix flake check (build matrix + consistency check)
 make fmt                            # format with nixfmt
 make update                         # update flake inputs
+make add-minor                      # track the newest Kubernetes minor upstream, retire the oldest
 make fetch-versions                 # bump packages.json patch versions from upstream releases
 make generate-hashes                # fetch srcHash/commit for versions missing them
 make vendor-hashes                  # resolve vendorHash for versions missing one
