@@ -311,3 +311,74 @@ var _ = Describe("RetireMinor", func() {
 		Expect(clusterAPI.Versions).NotTo(HaveKey("1.8.12"))
 	})
 })
+
+var _ = Describe("Rosters", func() {
+	// The fixture tracks no dependencies, so these build one. Every roster has
+	// to be reached by the same machinery; a second roster that only sigs code
+	// paths touch goes wrong silently rather than loudly.
+	withDep := func() *schema.File {
+		f := load()
+		f.Deps = []schema.Sig{{
+			Name:    "etcd",
+			Owner:   "etcd-io",
+			Repo:    "etcd",
+			Path:    "etcd/etcd",
+			ModRoot: "./server",
+			Minors: map[string]string{
+				"1.33": "3.5.21", "1.34": "3.6.5", "1.35": "3.6.6", "1.36": "3.6.8",
+			},
+			Versions: map[string]schema.SigVersion{
+				"3.5.21": {Commit: "a", SrcHash: "b", VendorHash: "c"},
+				"3.6.5":  {Commit: "a", SrcHash: "b", VendorHash: "c"},
+				"3.6.6":  {Commit: "a", SrcHash: "b", VendorHash: "c"},
+				"3.6.8":  {Commit: "a", SrcHash: "b", VendorHash: "c"},
+			},
+		}}
+		return f
+	}
+
+	It("AddMinor inherits dependency pins, not just SIG pins", func() {
+		f := withDep()
+
+		Expect(f.AddMinor("1.37", "1.37.0")).To(Succeed())
+
+		Expect(f.Deps[0].Minors["1.37"]).To(Equal("3.6.8"))
+	})
+
+	It("RetireMinor clears dependency pins", func() {
+		f := withDep()
+
+		Expect(f.RetireMinor("1.33")).To(Succeed())
+
+		Expect(f.Deps[0].Minors).NotTo(HaveKey("1.33"))
+	})
+
+	It("Prune sweeps dependency versions no minor pins", func() {
+		f := withDep()
+
+		Expect(f.RetireMinor("1.33")).To(Succeed())
+		f.Prune()
+
+		Expect(f.Deps[0].Versions).NotTo(HaveKey("3.5.21"))
+		Expect(f.Deps[0].Versions).To(HaveKey("3.6.8"))
+	})
+
+	It("Sig finds a package in any roster", func() {
+		f := withDep()
+
+		sig, ok := f.Sig("etcd")
+		Expect(ok).To(BeTrue())
+		Expect(sig.ModRoot).To(Equal("./server"))
+	})
+
+	It("round-trips a dependency roster, modRoot included", func() {
+		out := save(withDep())
+
+		Expect(out).To(ContainSubstring(`"deps": [`))
+		Expect(out).To(ContainSubstring(`"modRoot": "./server"`))
+	})
+
+	It("omits deps entirely when nothing is tracked", func() {
+		Expect(save(load())).NotTo(ContainSubstring(`"deps"`))
+	})
+})
