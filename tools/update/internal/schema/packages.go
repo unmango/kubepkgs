@@ -92,6 +92,100 @@ func (f *File) Prune() int {
 	return removed
 }
 
+// MinorOrder returns the supported minors in ascending semver order. It is
+// the order Supported is kept in, and therefore the order every minor-keyed
+// object in packages.json is emitted in.
+func MinorOrder(minors []string) []string {
+	ordered := append([]string(nil), minors...)
+	sort.Slice(ordered, func(i, j int) bool {
+		return semver.Compare("v"+ordered[i], "v"+ordered[j]) < 0
+	})
+	return ordered
+}
+
+// Newest returns the highest supported minor, i.e. the one a newly added
+// minor inherits its SIG pins from.
+func (f *File) Newest() (string, bool) {
+	ordered := MinorOrder(f.Supported)
+	if len(ordered) == 0 {
+		return "", false
+	}
+	return ordered[len(ordered)-1], true
+}
+
+// Oldest returns the lowest supported minor, i.e. the one AddMinor retires to
+// keep the supported window a fixed width.
+func (f *File) Oldest() (string, bool) {
+	ordered := MinorOrder(f.Supported)
+	if len(ordered) == 0 {
+		return "", false
+	}
+	return ordered[0], true
+}
+
+// AddMinor starts tracking a Kubernetes minor at the given version. The new
+// minor inherits its SIG pins verbatim from the newest minor already
+// supported, and becomes Latest if it is now the newest. Its srcHash and
+// commit are deliberately left empty: that is exactly CoreEntry.NeedsFetch,
+// so generate-hashes picks the record up with no special casing. Moving a SIG
+// to a new version stays a separate, deliberate edit.
+func (f *File) AddMinor(minor, version string) error {
+	if _, ok := f.Kubernetes[minor]; ok {
+		return fmt.Errorf("schema: kubernetes %s is already tracked", minor)
+	}
+	inherit, hasInherit := f.Newest()
+
+	f.Supported = MinorOrder(append(f.Supported, minor))
+	if f.Kubernetes == nil {
+		f.Kubernetes = map[string]CoreEntry{}
+	}
+	f.Kubernetes[minor] = CoreEntry{Version: version}
+
+	for i := range f.Sigs {
+		sig := &f.Sigs[i]
+		if !hasInherit {
+			return fmt.Errorf("schema: cannot add %s: no existing minor to inherit %s from", minor, sig.Name)
+		}
+		pinned, ok := sig.Minors[inherit]
+		if !ok {
+			return fmt.Errorf("schema: cannot add %s: %s has no version for %s to inherit", minor, sig.Name, inherit)
+		}
+		sig.Minors[minor] = pinned
+	}
+
+	if newest, ok := f.Newest(); ok && newest == minor {
+		f.Latest = minor
+	}
+	return nil
+}
+
+// RetireMinor stops tracking a Kubernetes minor. Every trace of it has to go:
+// Save only checks that supported minors have data, never that unsupported
+// ones are absent, so a leftover kubernetes entry or SIG pin survives the
+// write and fails later in nix/check-consistency.py. Call Prune afterwards to
+// sweep the SIG version records the retired minor was the last to pin.
+func (f *File) RetireMinor(minor string) error {
+	if _, ok := f.Kubernetes[minor]; !ok {
+		return fmt.Errorf("schema: kubernetes %s is not tracked", minor)
+	}
+	if minor == f.Latest {
+		return fmt.Errorf("schema: refusing to retire %s, it is latest", minor)
+	}
+
+	remaining := make([]string, 0, len(f.Supported))
+	for _, m := range f.Supported {
+		if m != minor {
+			remaining = append(remaining, m)
+		}
+	}
+	f.Supported = remaining
+	delete(f.Kubernetes, minor)
+	for i := range f.Sigs {
+		delete(f.Sigs[i].Minors, minor)
+	}
+	return nil
+}
+
 // NeedsFetch reports whether this Kubernetes record is missing hashes for the
 // version it names. fetch-versions clears both fields when it bumps a
 // version, so a populated record always describes its current version.

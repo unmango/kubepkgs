@@ -48,14 +48,18 @@ scripts:
 
 - `packages.json`: the single source of truth. Supported minors, `latest`, each minor's
   Kubernetes version + `srcHash` + `commit`, and one record per tracked SIG. Hand-edit it to
-  add or retire a minor, or to move a package to a new minor series.
+  move a package to a new minor series.
+- `make add-minor` (`nix run .#update -- add-minor [minor]`): starts tracking a Kubernetes
+  minor and retires the oldest, inheriting SIG pins from the newest minor already supported
+  and regenerating the README table. A no-op when the newest minor upstream is already
+  tracked.
 - `make fetch-versions` (`nix run .#update -- fetch-versions`): bumps patch versions from
   GitHub releases, staying inside the minor series each package is already pinned to.
 - `make generate-hashes` (`nix run .#update -- generate-hashes`): fills in `srcHash`/`commit`
   via `nix-prefetch-github` + the GitHub API.
 - `make vendor-hashes` (`nix run .#update -- vendor-hashes`): resolves real `vendorHash`
   values by building with a fake hash and parsing the reported one.
-- `make update-releases`: all three, in order.
+- `make update-releases`: the last three, in order.
 
 Each stage does only outstanding work. A Kubernetes record's `srcHash`/`commit` are written
 with the version they describe and cleared by `fetch-versions` on a bump; SIG records are
@@ -116,9 +120,9 @@ Narrower runs go through the CLI: `nix run .#update -- generate-hashes --target 
   `-extldflags '-static'` + `CGO_ENABLED = 0`).
 - **Reproducibility pins:** core `ldflags` set `buildDate` to the epoch and `gitTreeState` to
   `clean`; `commit` comes from `packages.json`.
-- **Adding a K8s minor:** add it to `supported` and `kubernetes`, add it to every SIG's
-  `minors` map, update `latest` if it is now the newest, then run `make generate-hashes` and
-  `make vendor-hashes`. `make fetch-versions` will not add a minor for you.
+- **Adding a K8s minor:** `make add-minor`, then `make generate-hashes` and
+  `make vendor-hashes` to fill the hashes it leaves empty. `make fetch-versions` will not add
+  a minor for you. `.github/workflows/update.yml` does all of this weekly and opens a PR.
 - **Adding a SIG package:** create `sigs/<category>/<project>/default.nix` taking
   `owner`/`repo` as arguments, append an entry to `sigs` in `packages.json` with `name`,
   `owner`, `path`, and a `minors` map, leave `versions` as `{}`, then run
