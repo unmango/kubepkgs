@@ -19,6 +19,9 @@ type CoreEntry struct {
 	Version string `json:"version"`
 	SrcHash string `json:"srcHash"`
 	Commit  string `json:"commit"`
+	// Go pins the toolchain this minor is built with, when the nixpkgs
+	// default does not work. Empty means the default.
+	Go string `json:"go,omitempty"`
 }
 
 // SigVersion is the packages.json record for one released version of a SIG.
@@ -47,6 +50,9 @@ type Sig struct {
 	// Subdir is the directory within the repository the module lives in, for
 	// projects that share a repository with their siblings.
 	Subdir string `json:"subdir,omitempty"`
+	// Go pins the toolchain this SIG is built with, when the nixpkgs default
+	// does not work. Empty means the default.
+	Go string `json:"go,omitempty"`
 	// Minors maps a Kubernetes minor to the SIG version it pins.
 	Minors map[string]string `json:"minors"`
 	// Versions maps a SIG version to its hashes.
@@ -373,7 +379,8 @@ func marshalSigs(f *File) ([]byte, error) {
 			Path      string `json:"path"`
 			TagPrefix string `json:"tagPrefix,omitempty"`
 			Subdir    string `json:"subdir,omitempty"`
-		}{sig.Name, sig.Owner, sig.Repo, sig.Path, sig.TagPrefix, sig.Subdir})
+			Go        string `json:"go,omitempty"`
+		}{sig.Name, sig.Owner, sig.Repo, sig.Path, sig.TagPrefix, sig.Subdir, sig.Go})
 		if err != nil {
 			return nil, err
 		}

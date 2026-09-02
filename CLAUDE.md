@@ -55,7 +55,7 @@ nix build '.#legacyPackages.x86_64-linux.kubernetes."1.34".sigs.cluster-api'
 
 **`packages.json`**: the single source of truth. Holds the supported minors, `latest`, each minor's Kubernetes version + `srcHash` + `commit`, and one record per tracked SIG.
 
-A SIG record carries `owner` and `path` (so the roster of SIG packages is data, not a hardcoded attrset), a `minors` map pinning a SIG version per Kubernetes minor, and a `versions` map of hashes keyed by *the SIG's own version*. Three optional fields cover projects that do not fit the common shape: `repo` when the repository is not named after the project (cluster-autoscaler lives in `kubernetes/autoscaler`), `tagPrefix` when a release tag is not `v` + version (`cluster-autoscaler-1.36.1`, `kustomize/v5.8.1`), and `subdir` when the module sits inside a shared repository. Two minors that pin the same SIG version therefore share one hash record, and `vendorHash` is resolved once per SIG version rather than once per minor.
+A SIG record carries `owner` and `path` (so the roster of SIG packages is data, not a hardcoded attrset), a `minors` map pinning a SIG version per Kubernetes minor, and a `versions` map of hashes keyed by *the SIG's own version*. Four optional fields cover projects that do not fit the common shape: `repo` when the repository is not named after the project (cluster-autoscaler lives in `kubernetes/autoscaler`), `tagPrefix` when a release tag is not `v` + version (`cluster-autoscaler-1.36.1`, `kustomize/v5.8.1`), `subdir` when the module sits inside a shared repository, and `go` when the nixpkgs default toolchain does not build it. A `kubernetes` record takes `go` too. Two minors that pin the same SIG version therefore share one hash record, and `vendorHash` is resolved once per SIG version rather than once per minor.
 
 **`releases.nix`**: reads `packages.json` and resolves it per minor, looking each SIG's hashes up by the version that minor pins.
 
@@ -75,6 +75,8 @@ Each stage does only outstanding work. A Kubernetes record's `srcHash`/`commit` 
 
 **`internal/readme`**: renders the README's supported-versions table from `packages.json` and retargets version-pinned examples across `README.md`, `CLAUDE.md`, and `.github/copilot-instructions.md`. `nix/check-consistency.py` stays the independent verifier of both, so a generator bug is still caught.
 
+**`nix/go-version.nix`**: resolves a `go` pin like `"1.25"` to the matching nixpkgs attribute (`go_1_25`), throwing with the package name, the requested version, and the list nixpkgs actually offers when there is no match. `mk-release.nix` binds the result through `buildGoModule.override`, so a record without a pin is unaffected. This selects among the versions nixpkgs ships; a package needing a Go newer than any of them still needs the nixpkgs input to move.
+
 **`nix/consistency.nix`** + **`nix/check-consistency.py`**: the `consistency` check. Validates that `packages.json` agrees with itself (every supported minor has an entry, every pinned SIG version has a complete hash record, no placeholder vendorHash, no orphan records), with the tree (every SIG `path` has a `default.nix`), and with the README's supported-versions table. Runs standalone as `python3 nix/check-consistency.py .`.
 
 **`nix/updater.nix`**: the `buildGoApplication` derivation for `tools/update`; filters `src` down to `go.mod`/`go.sum`/`**/*.go`/`**/testdata/**` via the `globset` flake input + `lib.fileset.toSource`, so unrelated file changes in `tools/update` don't trigger a rebuild.
@@ -93,7 +95,7 @@ Moving a SIG to a new version stays a separate, deliberate edit to `packages.jso
 ## Adding a new SIG package
 
 1. Create `sigs/<category>/<project>/default.nix` following the pattern of existing SIG packages. It takes `src` and `repo` as arguments rather than fetching anything itself.
-2. Append an entry to `sigs` in `packages.json` with `name`, `owner`, `path` (relative to `sigs/`), and a `minors` map pinning a version per supported minor. Add `repo`, `tagPrefix`, or `subdir` if the project does not follow the common shape. Leave `versions` as `{}`.
+2. Append an entry to `sigs` in `packages.json` with `name`, `owner`, `path` (relative to `sigs/`), and a `minors` map pinning a version per supported minor. Add `repo`, `tagPrefix`, `subdir`, or `go` if the project does not follow the common shape. Leave `versions` as `{}`.
 3. Run `make generate-hashes`, then `make vendor-hashes`, then `make sync-docs` to add the README column.
 
 No Nix needs editing: `mk-release.nix` maps over whatever `packages.json` declares.

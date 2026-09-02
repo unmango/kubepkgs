@@ -53,6 +53,7 @@
                 version
                 srcHash
                 commit
+                go
                 sigs
                 ;
             }

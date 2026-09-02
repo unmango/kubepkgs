@@ -121,6 +121,22 @@ EXAMPLE_DOCS = [
 ]
 
 
+GO_PIN = re.compile(r"^\d+\.\d+$")
+
+
+def check_go_pins(data, fail):
+    """An optional go pin names a Go minor series, not a full version."""
+    for minor, entry in data["kubernetes"].items():
+        pinned = entry.get("go")
+        if pinned is not None and not GO_PIN.match(pinned):
+            fail(f"kubernetes {minor} pins go {pinned!r}, expected a minor series like \"1.26\"")
+
+    for sig in data["sigs"]:
+        pinned = sig.get("go")
+        if pinned is not None and not GO_PIN.match(pinned):
+            fail(f"{sig['name']} pins go {pinned!r}, expected a minor series like \"1.26\"")
+
+
 def check_docs(data, root, fail):
     """Version-pinned examples in the docs name a minor that still exists."""
     supported = set(data["supported"])
@@ -146,6 +162,7 @@ def main(root):
     check_structure(data, root, fail)
     check_readme(data, root, fail)
     check_docs(data, root, fail)
+    check_go_pins(data, fail)
 
     if errors:
         for error in errors:
