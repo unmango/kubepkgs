@@ -10,18 +10,18 @@
 buildGoModule {
   pname = repo;
   inherit version src vendorHash;
-  subPackages = [ "." ];
+  subPackages = [ "cmd/nfd-master" ];
   doCheck = false;
   ldflags = [
     "-w"
     "-s"
-    "-X github.com/prometheus/common/version.Revision=${commit}"
+    "-X sigs.k8s.io/node-feature-discovery/pkg/version.version=v${version}"
   ];
   meta = with lib; {
-    description = "Add-on agent to generate and expose cluster-level metrics from the Kubernetes API";
-    homepage = "https://github.com/kubernetes/kube-state-metrics";
+    description = "Detects hardware features and configuration and labels nodes accordingly";
+    homepage = "https://kubernetes-sigs.github.io/node-feature-discovery";
     license = licenses.asl20;
     maintainers = with maintainers; [ UnstoppableMango ];
-    mainProgram = "kube-state-metrics";
+    mainProgram = "nfd-master";
   };
 }

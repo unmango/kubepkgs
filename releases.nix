@@ -18,7 +18,12 @@ let
         vendorHash
         ;
       inherit (sig) owner path;
-      repo = sig.name;
+      # A SIG's repository, release tag, and location within that repository
+      # are all data, so the package definitions stay free of per-project
+      # special cases. The defaults cover the common shape.
+      repo = sig.repo or sig.name;
+      tag = (sig.tagPrefix or "v") + version;
+      subdir = sig.subdir or "";
     };
 
   mkEntry =

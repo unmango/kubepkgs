@@ -15,13 +15,15 @@ buildGoModule {
   ldflags = [
     "-w"
     "-s"
-    "-X github.com/prometheus/common/version.Revision=${commit}"
+    # versionCore is a const, so it is baked in by the tag and not overridable;
+    # only the commit is injectable here.
+    "-X sigs.k8s.io/kind/pkg/cmd/kind/version.gitCommit=${commit}"
   ];
   meta = with lib; {
-    description = "Add-on agent to generate and expose cluster-level metrics from the Kubernetes API";
-    homepage = "https://github.com/kubernetes/kube-state-metrics";
+    description = "Runs local Kubernetes clusters using Docker container nodes";
+    homepage = "https://kind.sigs.k8s.io";
     license = licenses.asl20;
     maintainers = with maintainers; [ UnstoppableMango ];
-    mainProgram = "kube-state-metrics";
+    mainProgram = "kind";
   };
 }

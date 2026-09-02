@@ -1,21 +1,12 @@
 {
   buildGoModule,
-  fetchFromGitHub,
   lib,
   version,
   commit,
-  srcHash,
+  src,
   vendorHash,
-  owner,
   repo,
 }:
-let
-  src = fetchFromGitHub {
-    inherit owner repo;
-    rev = "v${version}";
-    hash = srcHash;
-  };
-in
 buildGoModule {
   pname = repo;
   inherit version src vendorHash;

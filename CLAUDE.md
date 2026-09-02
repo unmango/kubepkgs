@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## What this repo is
 
-Nix flake exposing versioned Kubernetes package sets. Each Kubernetes minor version gets a package set containing core binaries (kubectl, kubelet, kube-apiserver, etc.) and selected SIG projects (cluster-api, kube-state-metrics, metrics-server, external-dns).
+Nix flake exposing versioned Kubernetes package sets. Each Kubernetes minor version gets a package set containing core binaries (kubectl, kubelet, kube-apiserver, etc.) and selected SIG projects (cluster-api, cluster-autoscaler, descheduler, external-dns, kind, kube-state-metrics, kustomize, metrics-server, node-feature-discovery, secrets-store-csi-driver).
 
 Packages exposed as `legacyPackages.kubernetes."1.XX".<pkg>` and `legacyPackages.kubernetes.latest.<pkg>`.
 
@@ -25,6 +25,9 @@ make update          # nix flake update
 
 # Start tracking the newest Kubernetes minor upstream, retiring the oldest
 make add-minor
+
+# Regenerate the README table after an edit to packages.json that it reflects
+make sync-docs
 
 # Bump tracked patch versions in packages.json from upstream releases
 make fetch-versions
@@ -52,11 +55,11 @@ nix build '.#legacyPackages.x86_64-linux.kubernetes."1.34".sigs.cluster-api'
 
 **`packages.json`**: the single source of truth. Holds the supported minors, `latest`, each minor's Kubernetes version + `srcHash` + `commit`, and one record per tracked SIG.
 
-A SIG record carries `owner` and `path` (so the roster of SIG packages is data, not a hardcoded attrset), a `minors` map pinning a SIG version per Kubernetes minor, and a `versions` map of hashes keyed by *the SIG's own version*. Two minors that pin the same SIG version therefore share one hash record, and `vendorHash` is resolved once per SIG version rather than once per minor.
+A SIG record carries `owner` and `path` (so the roster of SIG packages is data, not a hardcoded attrset), a `minors` map pinning a SIG version per Kubernetes minor, and a `versions` map of hashes keyed by *the SIG's own version*. Three optional fields cover projects that do not fit the common shape: `repo` when the repository is not named after the project (cluster-autoscaler lives in `kubernetes/autoscaler`), `tagPrefix` when a release tag is not `v` + version (`cluster-autoscaler-1.36.1`, `kustomize/v5.8.1`), and `subdir` when the module sits inside a shared repository. Two minors that pin the same SIG version therefore share one hash record, and `vendorHash` is resolved once per SIG version rather than once per minor.
 
 **`releases.nix`**: reads `packages.json` and resolves it per minor, looking each SIG's hashes up by the version that minor pins.
 
-**`mk-release.nix`**: takes one release entry from `releases.nix`, fetches the kubernetes/kubernetes source, calls `core/default.nix` for core binaries, then maps each SIG entry through `callPackage (./sigs + "/${sig.path}")`.
+**`mk-release.nix`**: takes one release entry from `releases.nix`, fetches the kubernetes/kubernetes source, calls `core/default.nix` for core binaries, then maps each SIG entry through `callPackage (./sigs + "/${sig.path}")`. It fetches each SIG's source itself and passes the result down as `src`, the same way core receives one, so the package definitions carry no fetching or tag-scheme logic.
 
 **`flake.nix`**: maps `releases.nix` through `mkRelease` to produce `legacyPackages.kubernetes`, wires up `treefmt` (nixfmt), derives `checks` from the same data (every core binary for `latest`, kubectl for each older supported minor, one build per distinct SIG version so minors sharing a SIG version are not built twice, plus `consistency`), exposes the `update` package (`nix/updater.nix`, the `tools/update` Go CLI packaged via `gomod2nix`'s `buildGoApplication`), and exposes `devShells.default` (gnumake + nixfmt + nix-prefetch-github + go + the `gomod2nix` CLI).
 
@@ -78,7 +81,7 @@ Each stage does only outstanding work. A Kubernetes record's `srcHash`/`commit` 
 
 **`core/default.nix`**: builds all core K8s binaries via a shared `mkBin` helper using `buildGoModule`, with `vendorHash = null` against K8s's own vendored `vendor/` dir (no download needed). `vendor/modules.txt` is workspace-generated (`## workspace` header) so `GOWORK` must stay on (default); forcing it off breaks Go's vendor consistency check against the workspace-style modules.txt.
 
-**`sigs/<category>/<project>/default.nix`**: each SIG package fetches its own GitHub source and builds with `buildGoModule` against a real `vendorHash`.
+**`sigs/<category>/<project>/default.nix`**: each SIG package receives a ready `src` and builds it with `buildGoModule` against a real `vendorHash`. A project that ships its own `vendor/` dir sets `deleteVendor = true` rather than `vendorHash = null`, keeping every SIG on one model.
 
 ## Adding a new Kubernetes version
 
@@ -89,9 +92,9 @@ Moving a SIG to a new version stays a separate, deliberate edit to `packages.jso
 
 ## Adding a new SIG package
 
-1. Create `sigs/<category>/<project>/default.nix` following the pattern of existing SIG packages. It takes `owner`/`repo` as arguments rather than hardcoding them.
-2. Append an entry to `sigs` in `packages.json` with `name`, `owner`, `path` (relative to `sigs/`), and a `minors` map pinning a version per supported minor. Leave `versions` as `{}`.
-3. Run `make generate-hashes` then `make vendor-hashes`.
+1. Create `sigs/<category>/<project>/default.nix` following the pattern of existing SIG packages. It takes `src` and `repo` as arguments rather than fetching anything itself.
+2. Append an entry to `sigs` in `packages.json` with `name`, `owner`, `path` (relative to `sigs/`), and a `minors` map pinning a version per supported minor. Add `repo`, `tagPrefix`, or `subdir` if the project does not follow the common shape. Leave `versions` as `{}`.
+3. Run `make generate-hashes`, then `make vendor-hashes`, then `make sync-docs` to add the README column.
 
 No Nix needs editing: `mk-release.nix` maps over whatever `packages.json` declares.
 
