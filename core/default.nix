@@ -1,5 +1,6 @@
 {
   buildGoModule,
+  stdenv,
   lib,
   version,
   commit,
@@ -49,16 +50,14 @@ let
         "-installsuffix static"
       ];
 
-      meta =
-        with lib;
-        {
-          homepage = "https://kubernetes.io";
-          license = licenses.asl20;
-          maintainers = with maintainers; [ UnstoppableMango ];
-        }
-        // extraMeta;
+      meta = coreMeta // extraMeta;
       env = lib.optionalAttrs static { CGO_ENABLED = "0"; };
     });
+  coreMeta = {
+    homepage = "https://kubernetes.io";
+    license = lib.licenses.asl20;
+    maintainers = with lib.maintainers; [ UnstoppableMango ];
+  };
 in
 {
   # kubectl is NOT in KUBE_STATIC_BINARIES — dynamically linked on Linux.
@@ -90,5 +89,34 @@ in
   kube-proxy = mkBin "kube-proxy" "cmd/kube-proxy" true {
     description = "Kubernetes network proxy";
     mainProgram = "kube-proxy";
+  };
+
+  # The sandbox shim is a small C program rather than a Go binary, so it is
+  # built with stdenv straight from build/pause. The flags come from
+  # build/pause/Makefile minus its -static, which needs a static libc the
+  # default stdenv does not carry; nixpkgs links its pause dynamically too.
+  pause = stdenv.mkDerivation {
+    pname = "pause";
+    inherit version src;
+
+    dontConfigure = true;
+
+    buildPhase = ''
+      runHook preBuild
+      $CC -Os -Wall -Werror -DVERSION=v${version} -o pause build/pause/linux/pause.c
+      runHook postBuild
+    '';
+
+    installPhase = ''
+      runHook preInstall
+      install -D pause -t $out/bin
+      runHook postInstall
+    '';
+
+    meta = coreMeta // {
+      description = "Kubernetes pod sandbox shim";
+      mainProgram = "pause";
+      platforms = lib.platforms.linux;
+    };
   };
 }
