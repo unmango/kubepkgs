@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## What this repo is
 
-Nix flake exposing versioned Kubernetes package sets. Each Kubernetes minor version gets a package set containing core binaries (kubectl, kubelet, kube-apiserver, etc.), selected SIG projects (cluster-api, cluster-autoscaler, descheduler, external-dns, kind, kube-state-metrics, kustomize, metrics-server, node-feature-discovery, secrets-store-csi-driver), and etcd.
+Nix flake exposing versioned Kubernetes package sets. Each Kubernetes minor version gets a package set containing core binaries (kubectl, kubelet, kube-apiserver, pause, etc.), selected SIG projects (cluster-api, cluster-autoscaler, descheduler, external-dns, kind, kube-state-metrics, kustomize, metrics-server, node-feature-discovery, secrets-store-csi-driver), and etcd.
 
 Packages exposed as `legacyPackages.kubernetes."1.XX".<pkg>` and `legacyPackages.kubernetes.latest.<pkg>`.
 
@@ -83,7 +83,7 @@ Each stage does only outstanding work. A Kubernetes record's `srcHash`/`commit` 
 
 **`nix/updater.nix`**: the `buildGoApplication` derivation for `tools/update`; filters `src` down to `go.mod`/`go.sum`/`**/*.go`/`**/testdata/**` via the `globset` flake input + `lib.fileset.toSource`, so unrelated file changes in `tools/update` don't trigger a rebuild.
 
-**`core/default.nix`**: builds all core K8s binaries via a shared `mkBin` helper using `buildGoModule`, with `vendorHash = null` against K8s's own vendored `vendor/` dir (no download needed). `vendor/modules.txt` is workspace-generated (`## workspace` header) so `GOWORK` must stay on (default); forcing it off breaks Go's vendor consistency check against the workspace-style modules.txt.
+**`core/default.nix`**: builds the core K8s Go binaries via a shared `mkBin` helper using `buildGoModule`, with `vendorHash = null` against K8s's own vendored `vendor/` dir (no download needed). `vendor/modules.txt` is workspace-generated (`## workspace` header) so `GOWORK` must stay on (default); forcing it off breaks Go's vendor consistency check against the workspace-style modules.txt. `pause` is the one core package that is not Go: a small C shim compiled with `stdenv` from `build/pause/linux/pause.c`, using the flags in `build/pause/Makefile`.
 
 **`deps/etcd/{etcd,etcdctl,etcdutl}/default.nix`**: etcd is three Go modules in one repository (`./server`, `./etcdctl`, `./etcdutl`), each with its own dependency graph, so it is three records over the same source rather than one. That gives each a `vendorHash` of its own with no schema special case, and keeps every record yielding exactly one derivation. They use `modRoot`, not `subdir`: the submodules `replace` each other by relative path, so narrowing the source breaks them. `GOWORK = "off"` because etcd 3.7 ships a root `go.work` that would otherwise change module resolution under `modRoot` (the opposite of core, which needs `GOWORK` on). Versions follow what Kubernetes itself pins in `build/dependencies.yaml` per minor.
 

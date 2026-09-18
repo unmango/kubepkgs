@@ -2,7 +2,7 @@
 
 Nix flake exposing versioned Kubernetes package sets. Each Kubernetes minor version gets a
 package set with core binaries (kubectl, kubelet, kube-apiserver, kube-controller-manager,
-kube-scheduler, kube-proxy, kubeadm) plus selected SIG projects (cluster-api,
+kube-scheduler, kube-proxy, kubeadm, pause) plus selected SIG projects (cluster-api,
 kube-state-metrics, metrics-server, external-dns), all built with `buildGoModule` against
 the source and vendor hashes pinned in `packages.json`. (`gomod2nix`/`buildGoApplication` is used
 separately, only to package this repo's own `tools/update` Go CLI (see below).)
