@@ -25,5 +25,6 @@ buildGoModule {
     license = licenses.asl20;
     maintainers = with maintainers; [ UnstoppableMango ];
     mainProgram = "secrets-store-csi-driver";
+    platforms = platforms.linux;
   };
 }

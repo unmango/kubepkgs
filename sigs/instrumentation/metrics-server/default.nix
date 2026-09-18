@@ -23,5 +23,6 @@ buildGoModule {
     license = licenses.asl20;
     maintainers = with maintainers; [ UnstoppableMango ];
     mainProgram = "metrics-server";
+    platforms = platforms.linux;
   };
 }

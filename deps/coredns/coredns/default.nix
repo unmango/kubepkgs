@@ -30,5 +30,6 @@ buildGoModule {
     license = licenses.asl20;
     maintainers = with maintainers; [ UnstoppableMango ];
     mainProgram = "coredns";
+    platforms = platforms.linux;
   };
 }

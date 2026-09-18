@@ -33,5 +33,6 @@ buildGoModule {
     license = licenses.asl20;
     maintainers = with maintainers; [ UnstoppableMango ];
     mainProgram = "etcdutl";
+    platforms = platforms.linux;
   };
 }

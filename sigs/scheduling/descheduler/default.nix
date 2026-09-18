@@ -29,5 +29,6 @@ buildGoModule {
     license = licenses.asl20;
     maintainers = with maintainers; [ UnstoppableMango ];
     mainProgram = "descheduler";
+    platforms = platforms.linux;
   };
 }

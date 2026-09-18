@@ -23,5 +23,6 @@ buildGoModule {
     license = licenses.asl20;
     maintainers = with maintainers; [ UnstoppableMango ];
     mainProgram = "nfd-master";
+    platforms = platforms.linux;
   };
 }
