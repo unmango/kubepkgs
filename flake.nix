@@ -68,15 +68,18 @@
           # Every core binary for the latest minor, plus kubectl for each
           # older supported minor: enough to catch a bad source hash or a
           # build break on any tracked Kubernetes release without compiling
-          # the full binary set four times over.
+          # the full binary set four times over. Restricted to what the
+          # current system can build, since pause is Linux-only and its
+          # derivation throws when forced elsewhere.
           coreChecks =
             (lib.mapAttrs' (name: lib.nameValuePair "core-${latestVersion}-${name}") (
-              lib.filterAttrs (_: lib.isDerivation) (
-                removeAttrs latest [
-                  "sigs"
-                  "deps"
-                ]
-              )
+              lib.filterAttrs (_: pkg: lib.isDerivation pkg && lib.meta.availableOn pkgs.stdenv.hostPlatform pkg)
+                (
+                  removeAttrs latest [
+                    "sigs"
+                    "deps"
+                  ]
+                )
             ))
             // lib.listToAttrs (
               map (minor: lib.nameValuePair "core-${minor}-kubectl" versionedSets.${minor}.kubectl) (

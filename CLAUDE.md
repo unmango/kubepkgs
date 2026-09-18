@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## What this repo is
 
-Nix flake exposing versioned Kubernetes package sets. Each Kubernetes minor version gets a package set containing core binaries (kubectl, kubelet, kube-apiserver, pause, etc.), selected SIG projects (cluster-api, cluster-autoscaler, descheduler, external-dns, kind, kube-state-metrics, kustomize, metrics-server, node-feature-discovery, secrets-store-csi-driver), and etcd.
+Nix flake exposing versioned Kubernetes package sets. Each Kubernetes minor version gets a package set containing core binaries (kubectl, kubelet, kube-apiserver, the Linux-only pause shim, etc.), selected SIG projects (cluster-api, cluster-autoscaler, descheduler, external-dns, kind, kube-state-metrics, kustomize, metrics-server, node-feature-discovery, secrets-store-csi-driver), and etcd.
 
 Packages exposed as `legacyPackages.kubernetes."1.XX".<pkg>` and `legacyPackages.kubernetes.latest.<pkg>`.
 
