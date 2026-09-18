@@ -163,6 +163,74 @@ def check_readme(data, root, fail):
         check_table(data, lines, bounds, roster, packages, fail)
 
 
+# The core roster lives in core/default.nix rather than in packages.json,
+# because core binaries carry their build configuration in Nix. CORE_ATTR
+# matches a top-level attribute of the result set; everything nested inside one
+# is indented further. The `let` bindings share that indentation, so only the
+# part after the top-level `in` is read.
+CORE_ATTR = re.compile(r"^  ([A-Za-z][\w-]*) = ", re.M)
+
+# A backticked package name in an inventory list, ignoring any parenthesised
+# note beside it.
+ENTRY = re.compile(r"`([^`]+)`")
+
+INVENTORIES = [
+    ("### Available core packages", ""),
+    ("### Available dependency packages", "deps."),
+    ("### Available SIG packages", "sigs."),
+]
+
+
+def core_packages(root, fail):
+    text = open(os.path.join(root, "core", "default.nix")).read()
+    _, marker, body = text.rpartition("\nin\n")
+    if not marker:
+        fail("core/default.nix has no top-level `in`")
+        return []
+    names = CORE_ATTR.findall(body)
+    if not names:
+        fail("core/default.nix declares no packages")
+    return names
+
+
+def inventory(lines, heading, fail):
+    """The packages listed in the paragraph under heading, or None."""
+    for i, line in enumerate(lines):
+        if line.strip() != heading:
+            continue
+        for candidate in lines[i + 1:]:
+            if not candidate.strip():
+                continue
+            if candidate.startswith("#"):
+                break
+            return ENTRY.findall(candidate)
+        fail(f"README {heading!r} has no package list")
+        return None
+    fail(f"README has no {heading!r} heading")
+    return None
+
+
+def check_inventories(data, root, fail):
+    """Each roster's packages are all listed under its README heading."""
+    lines = open(os.path.join(root, "README.md")).read().splitlines()
+
+    rosters = [
+        core_packages(root, fail),
+        [sig["name"] for sig in data.get("deps", [])],
+        [sig["name"] for sig in data.get("sigs", [])],
+    ]
+
+    for (heading, prefix), roster in zip(INVENTORIES, rosters):
+        listed = inventory(lines, heading, fail)
+        if listed is None:
+            continue
+        expected = {prefix + name for name in roster}
+        for missing in sorted(expected - set(listed)):
+            fail(f"README {heading!r} does not list {missing}; run sync-docs")
+        for extra in sorted(set(listed) - expected):
+            fail(f"README {heading!r} lists {extra}, which no roster declares")
+
+
 # The two ways the docs name a Kubernetes minor: an attribute path and a flake
 # check name. Both stop resolving once that minor leaves the supported window.
 EXAMPLE_PATTERNS = [
@@ -217,6 +285,7 @@ def main(root):
 
     check_structure(data, root, fail)
     check_readme(data, root, fail)
+    check_inventories(data, root, fail)
     check_docs(data, root, fail)
     check_go_pins(data, fail)
 

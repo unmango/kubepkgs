@@ -52,7 +52,7 @@ kubepkgs.legacyPackages.x86_64-linux.kubernetes."1.34".sigs.cluster-api
 
 ### Available core packages
 
-`kubectl`, `kubeadm`, `kubelet`, `kube-apiserver`, `kube-controller-manager`, `kube-scheduler`, `kube-proxy`, `pause` (Linux only)
+`kube-apiserver`, `kube-controller-manager`, `kube-proxy`, `kube-scheduler`, `kubeadm`, `kubectl`, `kubelet`, `pause` (Linux only)
 
 ### Available dependency packages
 
@@ -70,7 +70,7 @@ make check                          # nix flake check (build matrix + consistenc
 make fmt                            # format with nixfmt
 make update                         # update flake inputs
 make add-minor                      # track the newest Kubernetes minor upstream, retire the oldest
-make sync-docs                      # regenerate the README table from packages.json
+make sync-docs                      # regenerate the README tables and package lists
 make fetch-versions                 # bump packages.json patch versions from upstream releases
 make generate-hashes                # fetch srcHash/commit for versions missing them
 make vendor-hashes                  # resolve vendorHash for versions missing one

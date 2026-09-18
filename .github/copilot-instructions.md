@@ -103,7 +103,7 @@ Narrower runs go through the CLI: `nix run .#update -- generate-hashes --target 
 - **`nix/consistency.nix`** + **`nix/check-consistency.py`**: the `consistency` check.
   Validates `packages.json` against itself (complete entries, no placeholder vendorHash, no
   orphan version records), against the tree (every SIG `path` has a `default.nix`), and
-  against the README's supported-versions table. Runs standalone as
+  against the README's supported-versions tables and package inventory lists. Runs standalone as
   `python3 nix/check-consistency.py .`.
 - **`nix/updater.nix`**: `buildGoApplication` derivation for the `tools/update` Go CLI;
   `src` is filtered to just `go.mod`/`go.sum`/`**/*.go`/`**/testdata/**` via the `globset`
