@@ -40,7 +40,10 @@ jobs:
       - uses: DeterminateSystems/magic-nix-cache-action@84c0677f58dcedf3b91f8223ce36a9ea5b3c84b7 # v15
         if: matrix.runner != 'thecluster'
 
+      # thecluster's nix is daemonless, and the post-build hook cachix
+      # installs fails there; its builds substitute from ncps instead.
       - uses: cachix/cachix-action@38b082610b782e7e93e209c35fd730d399dee866 # v17
+        if: matrix.runner != 'thecluster'
         with:
           name: unstoppablemango
           authToken: ${{ secrets.CACHIX_AUTH_TOKEN }}
