@@ -17,6 +17,7 @@ runCommand "kubepkgs-consistency"
         "CLAUDE.md"
         ".github/copilot-instructions.md"
         "nix/check-consistency.py"
+        "core/default.nix"
         "sigs/**/default.nix"
         "deps/**/default.nix"
       ];

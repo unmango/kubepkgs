@@ -9,6 +9,7 @@ import (
 
 	"github.com/spf13/cobra"
 
+	"github.com/unmango/kubepkgs/tools/update/internal/corepkgs"
 	"github.com/unmango/kubepkgs/tools/update/internal/ghclient"
 	"github.com/unmango/kubepkgs/tools/update/internal/readme"
 	"github.com/unmango/kubepkgs/tools/update/internal/schema"
@@ -170,10 +171,28 @@ func renderDocs(root string, f *schema.File, moves map[string]string) ([]rendere
 			if content, err = readme.Render(content, f); err != nil {
 				return nil, err
 			}
+			core, err := coreNames(root)
+			if err != nil {
+				return nil, err
+			}
+			if content, err = readme.Inventory(content, core, f); err != nil {
+				return nil, err
+			}
 		}
 		if content != string(data) {
 			changed = append(changed, renderedDoc{path: path, content: content})
 		}
 	}
 	return changed, nil
+}
+
+// coreNames reads the core package roster, which lives in core/default.nix
+// rather than in packages.json.
+func coreNames(root string) ([]string, error) {
+	path := filepath.Join(root, "core", "default.nix")
+	data, err := os.ReadFile(path)
+	if err != nil {
+		return nil, fmt.Errorf("reading %s: %w", path, err)
+	}
+	return corepkgs.Names(string(data))
 }

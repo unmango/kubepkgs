@@ -28,7 +28,7 @@ make update          # nix flake update
 # Start tracking the newest Kubernetes minor upstream, retiring the oldest
 make add-minor
 
-# Regenerate the README table after an edit to packages.json that it reflects
+# Regenerate the README tables and package lists after an edit to packages.json
 make sync-docs
 
 # Bump tracked patch versions in packages.json from upstream releases
@@ -77,11 +77,13 @@ Each stage does only outstanding work. A Kubernetes record's `srcHash`/`commit` 
 
 `add-minor` discovers the newest minor upstream via `ghclient.LatestMinor`, which shares `LatestPatch`'s prerelease filter, so a minor is only adopted once its stable `.0` ships. It writes the version and pins but leaves `srcHash`/`commit` empty, which is exactly `CoreEntry.NeedsFetch`, so `generate-hashes` picks the record up with no special casing and `add-minor` never has to touch `nixtool`.
 
-**`internal/readme`**: renders the README's supported-versions table from `packages.json` and retargets version-pinned examples across `README.md`, `CLAUDE.md`, and `.github/copilot-instructions.md`. `nix/check-consistency.py` stays the independent verifier of both, so a generator bug is still caught.
+**`internal/readme`**: renders the README's supported-versions tables from `packages.json` and the package inventory lists under `## Usage` from the rosters that declare them, `packages.json` for deps and sigs and `core/default.nix` for core, and retargets version-pinned examples across `README.md`, `CLAUDE.md`, and `.github/copilot-instructions.md`. A parenthesised note already written beside a package in an inventory list (`` `pause` (Linux only) ``) is carried over. `nix/check-consistency.py` stays the independent verifier of both, so a generator bug is still caught.
+
+**`internal/corepkgs`**: reads the core package roster out of `core/default.nix`, which is where it lives since core binaries carry their build configuration in Nix rather than in `packages.json`. `check-consistency.py` reads the same file with its own parser.
 
 **`nix/go-version.nix`**: resolves a `go` pin like `"1.25"` to the matching nixpkgs attribute (`go_1_25`), throwing with the package name, the requested version, and the list nixpkgs actually offers when there is no match. `mk-release.nix` binds the result through `buildGoModule.override`, so a record without a pin is unaffected. This selects among the versions nixpkgs ships; a package needing a Go newer than any of them still needs the nixpkgs input to move.
 
-**`nix/consistency.nix`** + **`nix/check-consistency.py`**: the `consistency` check. Validates that `packages.json` agrees with itself (every supported minor has an entry, every pinned SIG version has a complete hash record, no placeholder vendorHash, no orphan records), with the tree (every SIG `path` has a `default.nix`), and with the README's supported-versions table. Runs standalone as `python3 nix/check-consistency.py .`.
+**`nix/consistency.nix`** + **`nix/check-consistency.py`**: the `consistency` check. Validates that `packages.json` agrees with itself (every supported minor has an entry, every pinned SIG version has a complete hash record, no placeholder vendorHash, no orphan records), with the tree (every SIG `path` has a `default.nix`), and with the README's supported-versions tables and package inventory lists. The inventory check compares names as a set and ignores notes, so it constrains the content of each list without re-implementing the generator's ordering. Runs standalone as `python3 nix/check-consistency.py .`.
 
 **`nix/updater.nix`**: the `buildGoApplication` derivation for `tools/update`; filters `src` down to `go.mod`/`go.sum`/`**/*.go`/`**/testdata/**` via the `globset` flake input + `lib.fileset.toSource`, so unrelated file changes in `tools/update` don't trigger a rebuild.
 
@@ -102,7 +104,7 @@ Moving a SIG to a new version stays a separate, deliberate edit to `packages.jso
 
 1. Create `sigs/<category>/<project>/default.nix`, or `deps/<project>/default.nix` for a non-Kubernetes dependency, following the pattern of the existing packages. It takes `src` and `repo` as arguments rather than fetching anything itself.
 2. Append an entry to `sigs` or `deps` in `packages.json` with `name`, `owner`, `path` (relative to `sigs/`), and a `minors` map pinning a version per supported minor. Add `repo`, `tagPrefix`, `subdir`, or `go` if the project does not follow the common shape. Leave `versions` as `{}`.
-3. Run `make generate-hashes`, then `make vendor-hashes`, then `make sync-docs` to add the README column.
+3. Run `make generate-hashes`, then `make vendor-hashes`, then `make sync-docs` to add the README column and the inventory list entry. A core binary added to `core/default.nix` needs step 3 alone; the consistency check fails until the README lists it.
 
 No Nix needs editing: `mk-release.nix` maps over whatever `packages.json` declares.
 

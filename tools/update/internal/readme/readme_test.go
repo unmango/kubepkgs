@@ -184,3 +184,83 @@ var _ = Describe("Render with a deps roster", func() {
 		Expect(err).To(MatchError(ContainSubstring("found 1 version table(s), need 2")))
 	})
 })
+
+var _ = Describe("Inventory", func() {
+	const doc = "## Usage\n\n" +
+		"### Available core packages\n\n" +
+		"`kubectl`, `pause` (Linux only)\n\n" +
+		"### Available dependency packages\n\n" +
+		"`deps.etcd`, `deps.gone`\n\n" +
+		"### Available SIG packages\n\n" +
+		"`sigs.cluster-api`\n\n" +
+		"## Development\n"
+
+	core := []string{"kubectl", "kubeadm", "pause"}
+
+	withDeps := func() *schema.File {
+		f := fixture()
+		f.Deps = []schema.Sig{{Name: "etcd"}, {Name: "etcdctl"}}
+		return f
+	}
+
+	It("lists the core roster it is given, sorted by name", func() {
+		out, err := readme.Inventory(doc, core, withDeps())
+		Expect(err).NotTo(HaveOccurred())
+
+		Expect(out).To(ContainSubstring(
+			"### Available core packages\n\n`kubeadm`, `kubectl`, `pause` (Linux only)\n"))
+	})
+
+	It("sorts a roster independently of its declaration order", func() {
+		f := withDeps()
+		f.Deps = []schema.Sig{{Name: "etcd"}, {Name: "coredns"}}
+
+		out, err := readme.Inventory(doc, core, f)
+		Expect(err).NotTo(HaveOccurred())
+
+		Expect(out).To(ContainSubstring(
+			"### Available dependency packages\n\n`deps.coredns`, `deps.etcd`\n"))
+	})
+
+	It("keeps a note written beside a package", func() {
+		out, err := readme.Inventory(doc, core, withDeps())
+		Expect(err).NotTo(HaveOccurred())
+
+		Expect(out).To(ContainSubstring("`pause` (Linux only)"))
+	})
+
+	It("qualifies dependency and SIG names with their attribute path", func() {
+		out, err := readme.Inventory(doc, core, withDeps())
+		Expect(err).NotTo(HaveOccurred())
+
+		Expect(out).To(ContainSubstring("### Available dependency packages\n\n`deps.etcd`, `deps.etcdctl`\n"))
+		Expect(out).To(ContainSubstring("### Available SIG packages\n\n`sigs.cluster-api`, `sigs.metrics-server`\n"))
+	})
+
+	It("drops a package the roster no longer declares", func() {
+		out, err := readme.Inventory(doc, core, withDeps())
+		Expect(err).NotTo(HaveOccurred())
+
+		Expect(out).NotTo(ContainSubstring("deps.gone"))
+	})
+
+	It("leaves the prose around the lists alone", func() {
+		out, err := readme.Inventory(doc, core, withDeps())
+		Expect(err).NotTo(HaveOccurred())
+
+		Expect(out).To(HavePrefix("## Usage\n\n"))
+		Expect(out).To(HaveSuffix("\n\n## Development\n"))
+	})
+
+	It("reports a missing heading", func() {
+		_, err := readme.Inventory("## Usage\n", core, withDeps())
+		Expect(err).To(MatchError(ContainSubstring(`no "### Available core packages" heading`)))
+	})
+
+	It("reports a heading with no list under it", func() {
+		empty := strings.Replace(doc, "`kubectl`, `pause` (Linux only)\n\n", "", 1)
+
+		_, err := readme.Inventory(empty, core, withDeps())
+		Expect(err).To(MatchError(ContainSubstring("is followed by a heading, not a package list")))
+	})
+})

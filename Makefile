@@ -31,8 +31,9 @@ generate-hashes:
 vendor-hashes:
 	nix run '.#update' -- vendor-hashes
 
-# Regenerate the README table after an edit to packages.json that it reflects,
-# such as adding a SIG. add-minor already does this for its own changes.
+# Regenerate the README's version tables and package inventory lists after an
+# edit that they reflect, such as adding a SIG or a core binary. add-minor
+# already does this for the changes it makes.
 sync-docs:
 	nix run '.#update' -- sync-docs
 
