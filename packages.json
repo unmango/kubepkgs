@@ -370,6 +370,40 @@
           "vendorHash": "sha256-6um6K6tjnq7cVz80gkmDmzFtVztl0f9bnO4Jl4xAELg="
         }
       }
+    },
+    {
+      "name": "coredns",
+      "owner": "coredns",
+      "repo": "coredns",
+      "path": "coredns/coredns",
+      "minors": {
+        "1.34": "1.12.1",
+        "1.35": "1.13.1",
+        "1.36": "1.14.2",
+        "1.37": "1.14.6"
+      },
+      "versions": {
+        "1.12.1": {
+          "commit": "707c7c10acd52cb94e959e76ae233d9b76af0854",
+          "srcHash": "sha256-ALGQWUUvSGXbsOoLW5e62lPv3JU5WvJMeZYkEWiRhu4=",
+          "vendorHash": "sha256-uy1lzQB6NwN1r8dgNmyJH7GDroJeHh6GVhEYoXkAcis="
+        },
+        "1.13.1": {
+          "commit": "1db4568df6aaacda6ebbce87717156bd855f8103",
+          "srcHash": "sha256-rWa4xjHRREoMtvPqW6ZP6Ym9qNTa0l8Opd15FsmxraI=",
+          "vendorHash": "sha256-QZlgWtMdwxCEpS4TEIeYeLwfkfoy2rwAdJJFs1ohTzI="
+        },
+        "1.14.2": {
+          "commit": "dd1df4f5db93767a44e37638df44969503b320d2",
+          "srcHash": "sha256-c0xXZnc0muXViPqMCJsD8TTGMbVCOKE49ElAHEPnKlw=",
+          "vendorHash": "sha256-/CYSX4oFTC9dgLgClUUwXTtU4C8lP5TdgzCrjhB9nso="
+        },
+        "1.14.6": {
+          "commit": "424d125775cd70fa90dfc80bf0e52cc9a9aeb574",
+          "srcHash": "sha256-3BKXmrsSsDWFl6MT6c5Q8wcQiApO1vG0KeUtJLm89jU=",
+          "vendorHash": "sha256-gkhePrlDkAeiFPkMtaTqOcqUYyB71upkpONor4yv7yw="
+        }
+      }
     }
   ]
 }

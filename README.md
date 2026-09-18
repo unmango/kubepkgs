@@ -24,12 +24,12 @@ Exact patch versions are pinned in `packages.json` (the table above shows only m
 
 Kubernetes pins a specific etcd release per minor; these follow it.
 
-| Kubernetes        | etcd | etcdctl | etcdutl |
-| ----------------- | ---- | ------- | ------- |
-| **1.37** (latest) | 3.7  | 3.7     | 3.7     |
-| **1.36**          | 3.6  | 3.6     | 3.6     |
-| **1.35**          | 3.6  | 3.6     | 3.6     |
-| **1.34**          | 3.6  | 3.6     | 3.6     |
+| Kubernetes        | etcd | etcdctl | etcdutl | coredns |
+| ----------------- | ---- | ------- | ------- | ------- |
+| **1.37** (latest) | 3.7  | 3.7     | 3.7     | 1.14    |
+| **1.36**          | 3.6  | 3.6     | 3.6     | 1.14    |
+| **1.35**          | 3.6  | 3.6     | 3.6     | 1.13    |
+| **1.34**          | 3.6  | 3.6     | 3.6     | 1.12    |
 
 ## Usage
 
@@ -56,7 +56,7 @@ kubepkgs.legacyPackages.x86_64-linux.kubernetes."1.34".sigs.cluster-api
 
 ### Available dependency packages
 
-`deps.etcd`, `deps.etcdctl`, `deps.etcdutl`
+`deps.coredns`, `deps.etcd`, `deps.etcdctl`, `deps.etcdutl`
 
 ### Available SIG packages
 
