@@ -56,7 +56,7 @@ kubepkgs.legacyPackages.x86_64-linux.kubernetes."1.34".sigs.cluster-api
 
 ### Available dependency packages
 
-`deps.etcd`, `deps.etcdctl`, `deps.etcdutl`
+`deps.coredns`, `deps.etcd`, `deps.etcdctl`, `deps.etcdutl`
 
 ### Available SIG packages
 
