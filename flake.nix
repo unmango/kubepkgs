@@ -126,7 +126,9 @@
             inherit latest;
           };
 
-          packages = {
+          # `nix flake check` forces every package, and the default is
+          # Linux-only, so the set is filtered the same way the checks are.
+          packages = lib.filterAttrs (_: lib.meta.availableOn pkgs.stdenv.hostPlatform) {
             default = latest.kube-apiserver;
             inherit update;
           };
