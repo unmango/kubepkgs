@@ -1,0 +1,5 @@
+# thecluster is the org-level gha-runner-scale-set under unmango; actionlint
+# knows only the GitHub-hosted labels.
+self-hosted-runner:
+  labels:
+    - thecluster

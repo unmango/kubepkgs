@@ -112,4 +112,15 @@ No Nix needs editing: `mk-release.nix` maps over whatever `packages.json` declar
 
 `.github/workflows/update.yml` runs weekly (and on demand), opening one PR for a new minor and a separate one for patch bumps. It does not run `nix flake check` itself; the PR it opens triggers `ci.yml`, which does.
 
-CI runs `nix flake check` on every PR/push to main. That is the whole build matrix: the checks are derived from `packages.json`, so a version bump changes what CI covers with no list to update.
+`.github/workflows/ci.yml` runs `nix flake check` on every PR/push to main, once per system the flake offers, each on a runner of that architecture: `x86_64-linux` on `thecluster` (the org-level `gha-runner-scale-set` under `unmango`), `aarch64-linux` on `ubuntu-24.04-arm`, `aarch64-darwin` on `macos-15`. The checks are derived from `packages.json` and filtered through `lib.meta.availableOn`, so a version bump changes what CI covers with no list to update, and the darwin leg resolves to kubectl per supported minor plus `consistency`, `treefmt`, and `update`.
+
+The matrix job is `check`.
+A separate `build` job with `needs: [check]` and `if: always()` fails unless `needs.check.result` is `success`.
+The `main` ruleset requires a status check whose context is exactly `build`, which a matrix job cannot produce because its contexts carry the matrix values; the aggregator holds that context.
+Renaming it breaks merges on every PR, and the ruleset is managed by Pulumi in `UnstoppableMango/vcs`, not here.
+
+`thecluster`'s runner image ships a daemonless nix with an in-cluster `ncps` substituter set through `NIX_CONFIG`, and the runner has no sudo, so that leg skips `install-nix-action` and `magic-nix-cache-action` and runs `nix flake check` directly.
+All three legs push to the `unstoppablemango` cachix cache.
+
+Hercules CI builds `x86_64-linux` only, per `herculesCI.ciSystems` in the `UnstoppableMango/nix-systems` input.
+aarch64 does not belong there: a job queued for an agent that does not exist sits pending forever.

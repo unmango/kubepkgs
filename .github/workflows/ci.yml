@@ -6,16 +6,39 @@ on:
   pull_request:
 
 jobs:
-  build:
-    runs-on: ubuntu-latest
+  # One leg per system the flake offers, each on a runner of that architecture.
+  # The checks are derived from packages.json, so `nix flake check` is the whole
+  # matrix on every leg: on darwin it resolves to kubectl per supported minor
+  # plus consistency, treefmt and update, since every other package declares
+  # meta.platforms = linux.
+  check:
+    name: ${{ matrix.system }}
+    runs-on: ${{ matrix.runner }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - system: x86_64-linux
+            runner: thecluster
+          - system: aarch64-linux
+            runner: ubuntu-24.04-arm
+          - system: aarch64-darwin
+            runner: macos-15
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
 
+      # thecluster is the org-level gha-runner-scale-set. Its image ships a
+      # daemonless nix with the in-cluster ncps substituter in NIX_CONFIG, and
+      # the runner has no sudo, so the installer has nothing to do there.
       - uses: cachix/install-nix-action@13d8dd58da0234aa297dedd986986ccb8e7f3e24 # v31.11.1
+        if: matrix.runner != 'thecluster'
         with:
           github_access_token: ${{ secrets.GITHUB_TOKEN }}
 
+      # Proxies the GitHub Actions cache into the nix daemon. thecluster's nix
+      # is daemonless and already substitutes from ncps.
       - uses: DeterminateSystems/magic-nix-cache-action@84c0677f58dcedf3b91f8223ce36a9ea5b3c84b7 # v15
+        if: matrix.runner != 'thecluster'
 
       - uses: cachix/cachix-action@38b082610b782e7e93e209c35fd730d399dee866 # v17
         with:
@@ -23,3 +46,18 @@ jobs:
           authToken: ${{ secrets.CACHIX_AUTH_TOKEN }}
 
       - run: nix flake check
+
+  # The main ruleset requires a status check whose context is exactly `build`,
+  # which a matrix job cannot produce: its contexts carry the matrix values.
+  # This job holds that context and passes only when every leg succeeded.
+  build:
+    needs: [check]
+    if: always()
+    runs-on: ubuntu-latest
+    steps:
+      - name: Require every platform to have succeeded
+        env:
+          RESULT: ${{ needs.check.result }}
+        run: |
+          echo "check: $RESULT"
+          [ "$RESULT" = success ]
