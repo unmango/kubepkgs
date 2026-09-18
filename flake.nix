@@ -69,8 +69,8 @@
           # older supported minor: enough to catch a bad source hash or a
           # build break on any tracked Kubernetes release without compiling
           # the full binary set four times over. Restricted to what the
-          # current system can build, since pause is Linux-only and its
-          # derivation throws when forced elsewhere.
+          # current system can build: every core binary but kubectl declares
+          # meta.platforms = linux, leaving darwin with kubectl alone.
           coreChecks =
             (lib.mapAttrs' (name: lib.nameValuePair "core-${latestVersion}-${name}") (
               lib.filterAttrs (_: pkg: lib.isDerivation pkg && lib.meta.availableOn pkgs.stdenv.hostPlatform pkg)
@@ -91,15 +91,21 @@
           # pinning the same version produce the same derivation, and the
           # attribute name collapses them. Derived from the data, so a
           # version bump changes what CI covers without anyone editing a list.
+          # Restricted to what the current system can build the same way
+          # coreChecks is; every sig and dep declares meta.platforms = linux.
           rosterChecks =
             prefix: roster:
             lib.listToAttrs (
               lib.concatMap (
                 minor:
-                lib.mapAttrsToList (
-                  name: pkg:
-                  lib.nameValuePair "${prefix}-${name}-${releaseData.${minor}.${roster}.${name}.version}" pkg
-                ) versionedSets.${minor}.${roster}
+                lib.mapAttrsToList
+                  (
+                    name: pkg:
+                    lib.nameValuePair "${prefix}-${name}-${releaseData.${minor}.${roster}.${name}.version}" pkg
+                  )
+                  (
+                    lib.filterAttrs (_: lib.meta.availableOn pkgs.stdenv.hostPlatform) versionedSets.${minor}.${roster}
+                  )
               ) releases.supported
             );
 

@@ -60,35 +60,44 @@ let
   };
 in
 {
-  # kubectl is NOT in KUBE_STATIC_BINARIES — dynamically linked on Linux.
+  # kubectl is NOT in KUBE_STATIC_BINARIES — dynamically linked on Linux. It is
+  # the one core binary with a use off a cluster node, so it carries no platform
+  # restriction.
   kubectl = mkBin "kubectl" "cmd/kubectl" false {
     description = "Run commands against Kubernetes clusters";
     mainProgram = "kubectl";
   };
-  # Remaining binaries are in KUBE_STATIC_BINARIES per hack/lib/golang.sh.
+  # Remaining binaries are in KUBE_STATIC_BINARIES per hack/lib/golang.sh. They
+  # are node and control-plane components, so they are offered on Linux only.
   kubeadm = mkBin "kubeadm" "cmd/kubeadm" true {
     description = "Bootstrap a Kubernetes cluster";
     mainProgram = "kubeadm";
+    platforms = lib.platforms.linux;
   };
   kubelet = mkBin "kubelet" "cmd/kubelet" true {
     description = "Primary node agent for Kubernetes";
     mainProgram = "kubelet";
+    platforms = lib.platforms.linux;
   };
   kube-apiserver = mkBin "kube-apiserver" "cmd/kube-apiserver" true {
     description = "Kubernetes API server";
     mainProgram = "kube-apiserver";
+    platforms = lib.platforms.linux;
   };
   kube-controller-manager = mkBin "kube-controller-manager" "cmd/kube-controller-manager" true {
     description = "Kubernetes controller manager";
     mainProgram = "kube-controller-manager";
+    platforms = lib.platforms.linux;
   };
   kube-scheduler = mkBin "kube-scheduler" "cmd/kube-scheduler" true {
     description = "Kubernetes cluster scheduler";
     mainProgram = "kube-scheduler";
+    platforms = lib.platforms.linux;
   };
   kube-proxy = mkBin "kube-proxy" "cmd/kube-proxy" true {
     description = "Kubernetes network proxy";
     mainProgram = "kube-proxy";
+    platforms = lib.platforms.linux;
   };
 
   # The sandbox shim is a small C program rather than a Go binary, so it is

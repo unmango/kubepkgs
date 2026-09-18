@@ -26,5 +26,6 @@ buildGoModule {
     license = licenses.asl20;
     maintainers = with maintainers; [ UnstoppableMango ];
     mainProgram = "clusterctl";
+    platforms = platforms.linux;
   };
 }

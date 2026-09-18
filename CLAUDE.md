@@ -8,6 +8,8 @@ Nix flake exposing versioned Kubernetes package sets. Each Kubernetes minor vers
 
 Packages exposed as `legacyPackages.kubernetes."1.XX".<pkg>` and `legacyPackages.kubernetes.latest.<pkg>`.
 
+Every package but `kubectl` is a node or control-plane concern and declares `meta.platforms = lib.platforms.linux`, so darwin offers `kubectl` alone.
+
 ## Commands
 
 ```bash
@@ -63,7 +65,7 @@ A SIG record carries `owner` and `path` (so the roster of SIG packages is data, 
 
 **`mk-release.nix`**: takes one release entry from `releases.nix`, fetches the kubernetes/kubernetes source, calls `core/default.nix` for core binaries, then maps each SIG entry through `callPackage (./sigs + "/${sig.path}")`. It fetches each SIG's source itself and passes the result down as `src`, the same way core receives one, so the package definitions carry no fetching or tag-scheme logic.
 
-**`flake.nix`**: maps `releases.nix` through `mkRelease` to produce `legacyPackages.kubernetes`, wires up `treefmt` (nixfmt), derives `checks` from the same data (every core binary for `latest`, kubectl for each older supported minor, one build per distinct package version per roster so minors sharing a version are not built twice, plus `consistency`), exposes the `update` package (`nix/updater.nix`, the `tools/update` Go CLI packaged via `gomod2nix`'s `buildGoApplication`), and exposes `devShells.default` (gnumake + nixfmt + nix-prefetch-github + go + the `gomod2nix` CLI).
+**`flake.nix`**: maps `releases.nix` through `mkRelease` to produce `legacyPackages.kubernetes`, wires up `treefmt` (nixfmt), derives `checks` from the same data (every core binary for `latest`, kubectl for each older supported minor, one build per distinct package version per roster so minors sharing a version are not built twice, plus `consistency`), filters both rosters through `lib.meta.availableOn` so a package only appears in the checks for a system it declares support for, exposes the `update` package (`nix/updater.nix`, the `tools/update` Go CLI packaged via `gomod2nix`'s `buildGoApplication`), and exposes `devShells.default` (gnumake + nixfmt + nix-prefetch-github + go + the `gomod2nix` CLI).
 
 **`tools/update/`**: first-party Go module implementing the update lifecycle (`add-minor`, `fetch-versions`, `generate-hashes`, `vendor-hashes` cobra subcommands of a single `kubepkgs-update` binary). Packaged separately from core/sigs via `gomod2nix`/`buildGoApplication` (unrelated to the `buildGoModule` setup used for core/sigs, that migration, per commit `5025cf4`, is settled and unaffected by this).
 

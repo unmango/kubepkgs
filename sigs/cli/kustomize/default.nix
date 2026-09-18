@@ -25,5 +25,6 @@ buildGoModule {
     license = licenses.asl20;
     maintainers = with maintainers; [ UnstoppableMango ];
     mainProgram = "kustomize";
+    platforms = platforms.linux;
   };
 }

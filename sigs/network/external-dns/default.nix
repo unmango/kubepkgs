@@ -22,5 +22,6 @@ buildGoModule {
     license = licenses.asl20;
     maintainers = with maintainers; [ UnstoppableMango ];
     mainProgram = "external-dns";
+    platforms = platforms.linux;
   };
 }
