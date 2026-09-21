@@ -69,8 +69,9 @@
           # older supported minor: enough to catch a bad source hash or a
           # build break on any tracked Kubernetes release without compiling
           # the full binary set four times over. Restricted to what the
-          # current system can build: every core binary but kubectl declares
-          # meta.platforms = linux, leaving darwin with kubectl alone.
+          # current system can build: every core binary but kubectl and
+          # kube-apiserver declares meta.platforms = linux, leaving darwin with
+          # those two.
           coreChecks =
             (lib.mapAttrs' (name: lib.nameValuePair "core-${latestVersion}-${name}") (
               lib.filterAttrs (_: pkg: lib.isDerivation pkg && lib.meta.availableOn pkgs.stdenv.hostPlatform pkg)
