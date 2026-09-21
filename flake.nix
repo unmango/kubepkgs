@@ -92,7 +92,8 @@
           # attribute name collapses them. Derived from the data, so a
           # version bump changes what CI covers without anyone editing a list.
           # Restricted to what the current system can build the same way
-          # coreChecks is; every sig and dep declares meta.platforms = linux.
+          # coreChecks is; every sig and dep but etcd declares
+          # meta.platforms = linux.
           rosterChecks =
             prefix: roster:
             lib.listToAttrs (

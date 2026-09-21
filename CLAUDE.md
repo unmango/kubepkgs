@@ -8,7 +8,7 @@ Nix flake exposing versioned Kubernetes package sets. Each Kubernetes minor vers
 
 Packages exposed as `legacyPackages.kubernetes."1.XX".<pkg>` and `legacyPackages.kubernetes.latest.<pkg>`.
 
-Every package but `kubectl` is a node or control-plane concern and declares `meta.platforms = lib.platforms.linux`, so darwin offers `kubectl` alone.
+Every package but `kubectl` and `deps.etcd` is a node or control-plane concern and declares `meta.platforms = lib.platforms.linux`. darwin offers `kubectl`, plus the etcd server so controller-runtime's envtest has one.
 
 ## Commands
 
@@ -114,7 +114,7 @@ No Nix needs editing: `mk-release.nix` maps over whatever `packages.json` declar
 
 `.github/workflows/update.yml` runs weekly (and on demand), opening one PR for a new minor and a separate one for patch bumps. It does not run `nix flake check` itself; the PR it opens triggers `ci.yml`, which does.
 
-`.github/workflows/ci.yml` runs `nix flake check` on every PR/push to main, once per system the flake offers, each on a runner of that architecture: `x86_64-linux` on `thecluster` (the org-level `gha-runner-scale-set` under `unmango`), `aarch64-linux` on `ubuntu-24.04-arm`, `aarch64-darwin` on `macos-15`. The checks are derived from `packages.json` and filtered through `lib.meta.availableOn`, so a version bump changes what CI covers with no list to update, and the darwin leg resolves to kubectl per supported minor plus `consistency`, `treefmt`, and `update`.
+`.github/workflows/ci.yml` runs `nix flake check` on every PR/push to main, once per system the flake offers, each on a runner of that architecture: `x86_64-linux` on `thecluster` (the org-level `gha-runner-scale-set` under `unmango`), `aarch64-linux` on `ubuntu-24.04-arm`, `aarch64-darwin` on `macos-15`. The checks are derived from `packages.json` and filtered through `lib.meta.availableOn`, so a version bump changes what CI covers with no list to update, and the darwin leg resolves to kubectl per supported minor, etcd per distinct version, and `consistency`, `treefmt`, and `update`.
 
 The matrix job is `check`.
 A separate `build` job with `needs: [check]` and `if: always()` fails unless `needs.check.result` is `success`.

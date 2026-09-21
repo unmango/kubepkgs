@@ -46,6 +46,7 @@ buildGoModule {
     license = licenses.asl20;
     maintainers = with maintainers; [ UnstoppableMango ];
     mainProgram = "etcd";
-    platforms = platforms.linux;
+    # darwin carries the server alone, for controller-runtime's envtest.
+    platforms = platforms.linux ++ platforms.darwin;
   };
 }

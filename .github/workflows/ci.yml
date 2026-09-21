@@ -8,9 +8,9 @@ on:
 jobs:
   # One leg per system the flake offers, each on a runner of that architecture.
   # The checks are derived from packages.json, so `nix flake check` is the whole
-  # matrix on every leg: on darwin it resolves to kubectl per supported minor
-  # plus consistency, treefmt and update, since every other package declares
-  # meta.platforms = linux.
+  # matrix on every leg: on darwin it resolves to kubectl per supported minor,
+  # etcd per distinct version, and consistency, treefmt and update, since every
+  # other package declares meta.platforms = linux.
   check:
     name: ${{ matrix.system }}
     runs-on: ${{ matrix.runner }}
