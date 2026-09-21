@@ -71,7 +71,8 @@ in
 {
   kubectl = kubectlBin;
   # Remaining binaries are in KUBE_STATIC_BINARIES per hack/lib/golang.sh. They
-  # are node and control-plane components, so they are offered on Linux only.
+  # are node and control-plane components, so they are offered on Linux only,
+  # except kube-apiserver.
   kubeadm = mkBin "kubeadm" "cmd/kubeadm" true {
     description = "Bootstrap a Kubernetes cluster";
     mainProgram = "kubeadm";
@@ -85,7 +86,9 @@ in
   kube-apiserver = mkBin "kube-apiserver" "cmd/kube-apiserver" true {
     description = "Kubernetes API server";
     mainProgram = "kube-apiserver";
-    platforms = lib.platforms.linux;
+    # darwin carries it for controller-runtime's envtest, as setup-envtest's
+    # own darwin archives do.
+    platforms = lib.platforms.linux ++ lib.platforms.darwin;
   };
   kube-controller-manager = mkBin "kube-controller-manager" "cmd/kube-controller-manager" true {
     description = "Kubernetes controller manager";
