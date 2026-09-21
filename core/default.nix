@@ -2,6 +2,7 @@
   buildGoModule,
   stdenv,
   lib,
+  makeWrapper,
   version,
   commit,
   src,
@@ -58,15 +59,17 @@ let
     license = lib.licenses.asl20;
     maintainers = with lib.maintainers; [ UnstoppableMango ];
   };
-in
-{
+
   # kubectl is NOT in KUBE_STATIC_BINARIES — dynamically linked on Linux. It is
   # the one core binary with a use off a cluster node, so it carries no platform
-  # restriction.
-  kubectl = mkBin "kubectl" "cmd/kubectl" false {
+  # restriction. Bound here so kube-addons can point the addon manager at it.
+  kubectlBin = mkBin "kubectl" "cmd/kubectl" false {
     description = "Run commands against Kubernetes clusters";
     mainProgram = "kubectl";
   };
+in
+{
+  kubectl = kubectlBin;
   # Remaining binaries are in KUBE_STATIC_BINARIES per hack/lib/golang.sh. They
   # are node and control-plane components, so they are offered on Linux only.
   kubeadm = mkBin "kubeadm" "cmd/kubeadm" true {
@@ -125,6 +128,38 @@ in
     meta = coreMeta // {
       description = "Kubernetes pod sandbox shim";
       mainProgram = "pause";
+      platforms = lib.platforms.linux;
+    };
+  };
+
+  # The addon manager is a pair of shell scripts. kube-addons-main.sh sources
+  # kube-addons.sh from the working directory or /opt, so the wrapper runs it
+  # from the directory holding both instead of patching the lookup. Both read
+  # KUBECTL_BIN for the kubectl to drive.
+  kube-addons = stdenv.mkDerivation {
+    pname = "kube-addons";
+    inherit version src;
+
+    nativeBuildInputs = [ makeWrapper ];
+
+    dontConfigure = true;
+    dontBuild = true;
+
+    installPhase = ''
+      runHook preInstall
+      dir=$out/libexec/kube-addons
+      install -Dm755 cluster/addons/addon-manager/kube-addons-main.sh -t $dir
+      install -Dm644 cluster/addons/addon-manager/kube-addons.sh -t $dir
+      patchShebangs $dir
+      makeWrapper $dir/kube-addons-main.sh $out/bin/kube-addons \
+        --chdir $dir \
+        --set KUBECTL_BIN ${lib.getExe kubectlBin}
+      runHook postInstall
+    '';
+
+    meta = coreMeta // {
+      description = "Kubernetes addon manager";
+      mainProgram = "kube-addons";
       platforms = lib.platforms.linux;
     };
   };

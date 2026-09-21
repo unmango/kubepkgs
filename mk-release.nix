@@ -80,6 +80,24 @@ let
 in
 core
 // {
+  # Drop-in for nixpkgs' `kubernetes`, the shape services.kubernetes.package
+  # expects: every server binary plus kube-addons under one bin/, and the
+  # sandbox shim as a `pause` attribute rather than in bin/.
+  kubernetes = pkgs.symlinkJoin {
+    name = "kubernetes-${version}";
+    paths = lib.attrValues (lib.filterAttrs (_: lib.isDerivation) (removeAttrs core [ "pause" ]));
+    passthru = {
+      inherit version;
+      inherit (core) pause;
+    };
+    meta = {
+      description = "Kubernetes core binaries in the layout of nixpkgs' kubernetes package";
+      homepage = "https://kubernetes.io";
+      license = lib.licenses.asl20;
+      platforms = lib.platforms.linux;
+    };
+  };
+
   sigs = mkRoster ./sigs sigs;
   deps = mkRoster ./deps deps;
 }

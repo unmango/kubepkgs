@@ -50,9 +50,18 @@ kubepkgs.legacyPackages.x86_64-linux.kubernetes."1.36".kubectl
 kubepkgs.legacyPackages.x86_64-linux.kubernetes."1.34".sigs.cluster-api
 ```
 
+### NixOS
+
+Each set carries a `kubernetes` package in the layout of nixpkgs' `kubernetes`: the server binaries and `kube-addons` under one `bin/`, and the sandbox shim as `.pause`.
+Set it as the package for the NixOS Kubernetes module:
+
+```nix
+services.kubernetes.package = kubepkgs.legacyPackages.${pkgs.stdenv.hostPlatform.system}.kubernetes.latest.kubernetes;
+```
+
 ### Available core packages
 
-`kube-apiserver`, `kube-controller-manager`, `kube-proxy`, `kube-scheduler`, `kubeadm`, `kubectl`, `kubelet`, `pause` (Linux only)
+`kube-addons`, `kube-apiserver`, `kube-controller-manager`, `kube-proxy`, `kube-scheduler`, `kubeadm`, `kubectl`, `kubelet`, `pause` (Linux only)
 
 ### Available dependency packages
 
