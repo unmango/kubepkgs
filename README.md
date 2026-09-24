@@ -3,6 +3,7 @@
 [![CI](https://github.com/unmango/kubepkgs/actions/workflows/ci.yml/badge.svg)](https://github.com/unmango/kubepkgs/actions/workflows/ci.yml)
 [![NixOS](https://img.shields.io/badge/NixOS-unstable-5277C3?logo=nixos&logoColor=white)](https://nixos.org)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
+[![Hercules CI](https://hercules-ci.com/api/v1/site/github/account/unmango/project/kubepkgs/badge)](https://hercules-ci.com/github/unmango/kubepkgs)
 
 > [!WARNING]
 > This project is a work in progress. Expect breaking changes.
