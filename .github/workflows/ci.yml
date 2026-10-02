@@ -33,7 +33,7 @@ jobs:
       # the runner has no sudo, so the installer has nothing to do there.
       # thecluster's nix is daemonless, and the post-build hook cachix
       # installs fails there; its builds substitute from ncps instead.
-      - uses: unmango/actions/setup-nix@3ec4ed5a6af9c00f6a39e079df488573c77ebda6 # v1.0.1
+      - uses: unmango/actions/setup-nix@389dda3b9e44477f790e76d5474b700c1bb9b82d # v1.3.0
         if: matrix.runner != 'thecluster'
         with:
           github_access_token: ${{ secrets.GITHUB_TOKEN }}
