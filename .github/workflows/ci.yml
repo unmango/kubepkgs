@@ -44,7 +44,11 @@ jobs:
       - uses: DeterminateSystems/magic-nix-cache-action@84c0677f58dcedf3b91f8223ce36a9ea5b3c84b7 # v15
         if: matrix.runner != 'thecluster'
 
-      - run: nix flake check
+      # ncps intermittently ends a NAR transfer early, and nix then fails the
+      # whole check with "Transferred a partial file" rather than building the
+      # path. --fallback builds it from source instead; it changes nothing
+      # when every substitute succeeds.
+      - run: nix flake check --fallback
 
   # The main ruleset requires a status check whose context is exactly `build`,
   # which a matrix job cannot produce: its contexts carry the matrix values.
