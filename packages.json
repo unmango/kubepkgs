@@ -23,9 +23,9 @@
       "commit": "bb826b1d48562f110659e64e8ec444327433db95"
     },
     "1.37": {
-      "version": "1.37.0",
-      "srcHash": "sha256-irRDtPf+bk2uQ/QOcAXzYcrm/0pys/e4M5ITyL6omqs=",
-      "commit": "f54c212e3a2f75d674b717a9b29052b20b60aefc"
+      "version": "1.37.1",
+      "srcHash": "sha256-9p7t8EN6Iv3Q2ClJgCgSUJP1Qdp7B47fOe0roP5jZbg=",
+      "commit": "f78e722310e50bcaca9276be22276d9e91d91308"
     }
   },
   "sigs": [
