@@ -124,7 +124,7 @@ The `main` ruleset requires a status check whose context is exactly `build`, whi
 Renaming it breaks merges on every PR, and the ruleset is managed by Pulumi in `UnstoppableMango/vcs`, not here.
 
 `thecluster`'s runner image ships a daemonless nix with an in-cluster `ncps` substituter set through `NIX_CONFIG`, and the runner has no sudo, so that leg skips `install-nix-action` and `magic-nix-cache-action` and runs `nix flake check` directly.
-All three legs push to the `unstoppablemango` cachix cache.
+All three legs push to the `unstoppablemango` cachix cache: the hosted legs through the post-build hook `setup-nix` installs, `thecluster` through an explicit `cachix push` of every check's closure after `nix flake check`, since that hook does not work with a daemonless nix.
 
 Hercules CI builds `x86_64-linux` only, per `herculesCI.ciSystems` in the `UnstoppableMango/nix-systems` input.
 aarch64 does not belong there: a job queued for an agent that does not exist sits pending forever.

@@ -15,6 +15,10 @@ jobs:
   check:
     name: ${{ matrix.system }}
     runs-on: ${{ matrix.runner }}
+    # Job-level so the thecluster push step's `if` can see it; a step's own
+    # env is not in scope for its condition.
+    env:
+      CACHIX_AUTH_TOKEN: ${{ secrets.CACHIX_AUTH_TOKEN }}
     strategy:
       fail-fast: false
       matrix:
@@ -45,6 +49,16 @@ jobs:
         if: matrix.runner != 'thecluster'
 
       - run: nix flake check
+
+      # The other legs push through the post-build hook setup-nix installs,
+      # which thecluster skips, so its outputs are pushed here instead. The
+      # checks are already built, and cachix pushes each one's closure.
+      - name: Push to cachix
+        if: matrix.runner == 'thecluster' && env.CACHIX_AUTH_TOKEN != ''
+        run: |
+          nix eval --raw '.#checks.${{ matrix.system }}' \
+            --apply 'cs: builtins.concatStringsSep "\n" (map (c: c.outPath) (builtins.attrValues cs))' \
+            | nix run --inputs-from . nixpkgs#cachix -- push unstoppablemango
 
   # The main ruleset requires a status check whose context is exactly `build`,
   # which a matrix job cannot produce: its contexts carry the matrix values.
