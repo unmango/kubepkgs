@@ -56,6 +56,8 @@ jobs:
       # checks are already built, and cachix pushes each one's closure.
       - name: Push to cachix
         if: matrix.runner == 'thecluster' && env.CACHIX_AUTH_TOKEN != ''
+        # An explicit bash shell runs with pipefail, so a failed eval fails the step
+        shell: bash
         run: |
           nix eval --raw '.#checks.${{ matrix.system }}' \
             --apply 'cs: builtins.concatStringsSep "\n" (map (c: c.outPath) (builtins.attrValues cs))' \
