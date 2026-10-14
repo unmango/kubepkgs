@@ -3,7 +3,7 @@ module github.com/unmango/kubepkgs/tools/update
 go 1.26.0
 
 require (
-	github.com/google/go-github/v68 v68.0.0
+	github.com/google/go-github/v92 v92.0.0
 	github.com/onsi/ginkgo/v2 v2.32.2
 	github.com/onsi/gomega v1.43.0
 	github.com/spf13/cobra v1.10.2
