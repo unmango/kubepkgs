@@ -47,7 +47,11 @@ func newAddMinorCmd() *cobra.Command {
 			if len(args) == 1 {
 				minor = args[0]
 			}
-			return runAddMinor(cmd.Context(), ghclient.NewFromEnv(),
+			client, err := ghclient.NewFromEnv()
+			if err != nil {
+				return err
+			}
+			return runAddMinor(cmd.Context(), client,
 				root, minor, dryRun, noRetire, cmd.ErrOrStderr())
 		},
 	}

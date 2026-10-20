@@ -5,10 +5,9 @@ package ghclient
 
 import (
 	"net/http"
-	"net/url"
 	"os"
 
-	"github.com/google/go-github/v68/github"
+	"github.com/google/go-github/v93/github"
 )
 
 // Client wraps a GitHub API client with the release-listing cache LatestPatch
@@ -20,29 +19,31 @@ type Client struct {
 
 // NewFromEnv builds a Client authenticated via the GITHUB_TOKEN environment
 // variable (already exported via `gh auth token` in .envrc for local dev).
-func NewFromEnv() *Client {
+func NewFromEnv() (*Client, error) {
 	return New(os.Getenv("GITHUB_TOKEN"))
 }
 
 // New builds a Client authenticated with the given token. An empty token
 // falls back to unauthenticated (rate-limited) API access.
-func New(token string) *Client {
-	gh := github.NewClient(nil)
+func New(token string) (*Client, error) {
+	var opts []github.ClientOptionsFunc
 	if token != "" {
-		gh = gh.WithAuthToken(token)
+		opts = append(opts, github.WithAuthToken(token))
 	}
-	return &Client{gh: gh, cache: map[string][]*github.RepositoryRelease{}}
+	return newClient(opts...)
 }
 
 // NewWithHTTPClient builds a Client that sends requests to baseURL (which
 // must end in "/") via httpClient instead of the public GitHub API. Used by
 // tests to point at an httptest server.
 func NewWithHTTPClient(httpClient *http.Client, baseURL string) (*Client, error) {
-	u, err := url.Parse(baseURL)
+	return newClient(github.WithHTTPClient(httpClient), github.WithURLs(&baseURL, nil))
+}
+
+func newClient(opts ...github.ClientOptionsFunc) (*Client, error) {
+	gh, err := github.NewClient(opts...)
 	if err != nil {
 		return nil, err
 	}
-	gh := github.NewClient(httpClient)
-	gh.BaseURL = u
 	return &Client{gh: gh, cache: map[string][]*github.RepositoryRelease{}}, nil
 }

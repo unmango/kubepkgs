@@ -28,7 +28,11 @@ func newFetchVersionsCmd() *cobra.Command {
 			if err != nil {
 				return err
 			}
-			return runFetchVersions(cmd.Context(), ghclient.NewFromEnv(),
+			client, err := ghclient.NewFromEnv()
+			if err != nil {
+				return err
+			}
+			return runFetchVersions(cmd.Context(), client,
 				packagesPath(root), dryRun, cmd.ErrOrStderr())
 		},
 	}

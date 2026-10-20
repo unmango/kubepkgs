@@ -34,7 +34,11 @@ func newGenerateHashesCmd() *cobra.Command {
 			if err != nil {
 				return err
 			}
-			return runGenerateHashes(cmd.Context(), ghclient.NewFromEnv(),
+			client, err := ghclient.NewFromEnv()
+			if err != nil {
+				return err
+			}
+			return runGenerateHashes(cmd.Context(), client,
 				packagesPath(root), targets, dryRun, force, cmd.ErrOrStderr())
 		},
 	}
