@@ -34,8 +34,8 @@ schema = 3
     hash = 'sha256-XWlYH0c8IcxAwQTnIi6WYqq44nOKUylSWxWO/vi+8pE='
 
   [mod.'github.com/onsi/ginkgo/v2']
-    version = 'v2.32.2'
-    hash = 'sha256-5q46nwq3Mbvb0b7jltDvgbCXocSLM4ur8p9PRpJ2kLg='
+    version = 'v2.33.1'
+    hash = 'sha256-5Br78o7nun3BwuafbJSTrzoVXhCGDW6ceCl839w/qwI='
 
   [mod.'github.com/onsi/gomega']
     version = 'v1.43.0'
