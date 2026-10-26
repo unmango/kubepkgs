@@ -128,3 +128,17 @@ The hosted legs push to the `unstoppablemango` cachix cache through the post-bui
 
 Hercules CI builds `x86_64-linux` only, per `herculesCI.ciSystems` in the `UnstoppableMango/nix-systems` input.
 aarch64 does not belong there: a job queued for an agent that does not exist sits pending forever.
+
+## Agent skills
+
+### Issue tracker
+
+Issues are tracked in this repo's GitHub Issues. See `docs/agents/issue-tracker.md`.
+
+### Triage labels
+
+The five default triage labels, each named after its role (`needs-triage`, `needs-info`, `ready-for-agent`, `ready-for-human`, `wontfix`). See `docs/agents/triage-labels.md`.
+
+### Domain docs
+
+Single-context: one `CONTEXT.md` and `docs/adr/` at the repo root. See `docs/agents/domain.md`.
