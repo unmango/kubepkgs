@@ -65,13 +65,7 @@
 
           latest = versionedSets.${latestVersion};
 
-          # Every core binary for the latest minor, plus kubectl for each
-          # older supported minor: enough to catch a bad source hash or a
-          # build break on any tracked Kubernetes release without compiling
-          # the full binary set four times over. Restricted to what the
-          # current system can build: every core binary but kubectl and
-          # kube-apiserver declares meta.platforms = linux, leaving darwin with
-          # those two.
+          # Catches a bad source hash or build break on every tracked release without compiling the full binary set four times over.
           coreChecks =
             (lib.mapAttrs' (name: lib.nameValuePair "core-${latestVersion}-${name}") (
               lib.filterAttrs (_: pkg: lib.isDerivation pkg && lib.meta.availableOn pkgs.stdenv.hostPlatform pkg)
@@ -88,13 +82,7 @@
               )
             );
 
-          # One build per distinct package version rather than per minor: minors
-          # pinning the same version produce the same derivation, and the
-          # attribute name collapses them. Derived from the data, so a
-          # version bump changes what CI covers without anyone editing a list.
-          # Restricted to what the current system can build the same way
-          # coreChecks is; every sig and dep but etcd declares
-          # meta.platforms = linux.
+          # Minors pinning the same version share a derivation, so the attribute name collapses them.
           rosterChecks =
             prefix: roster:
             lib.listToAttrs (
@@ -128,8 +116,7 @@
             inherit latest;
           };
 
-          # `nix flake check` forces every package, and the default is
-          # Linux-only, so the set is filtered the same way the checks are.
+          # `nix flake check` forces every package, and the default is Linux-only.
           packages = lib.filterAttrs (_: lib.meta.availableOn pkgs.stdenv.hostPlatform) {
             default = latest.kube-apiserver;
             inherit update;

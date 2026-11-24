@@ -7,7 +7,8 @@
 > [!WARNING]
 > This project is a work in progress. Expect breaking changes.
 
-Nix flake exposing versioned Kubernetes package sets. Each Kubernetes minor version ships a package set containing core binaries and selected SIG projects, all built reproducibly with `buildGoModule` against the source and vendor hashes pinned in `packages.json`.
+Nix flake exposing versioned Kubernetes package sets.
+Each Kubernetes minor version ships a package set containing core binaries and selected SIG projects, all built reproducibly with `buildGoModule` against the source and vendor hashes pinned in `packages.json`.
 
 ## Supported versions
 
@@ -86,6 +87,7 @@ make vendor-hashes                  # resolve vendorHash for versions missing on
 make update-releases                # all three, in order
 ```
 
-The update lifecycle is implemented by the `tools/update` Go CLI (packaged via `gomod2nix`, `nix run .#update -- <subcommand>`), wired into the `make` targets above. `packages.json` is the single source of truth for tracked versions and pinned hashes; SIG hashes are keyed by the SIG's own version, so a version shared across Kubernetes minors is recorded and resolved once.
+The update lifecycle is implemented by the `tools/update` Go CLI (packaged via `gomod2nix`, `nix run .#update -- <subcommand>`), wired into the `make` targets above.
+`packages.json` is the single source of truth for tracked versions and pinned hashes; SIG hashes are keyed by the SIG's own version, so a version shared across Kubernetes minors is recorded and resolved once.
 
 `direnv` + `use flake` provides the dev shell automatically.
