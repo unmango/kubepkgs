@@ -8,9 +8,7 @@
   src,
 }:
 let
-  # Mirrors hack/lib/version.sh kube::version::ldflags — injects version info
-  # into both k8s.io/client-go/pkg/version and k8s.io/component-base/version.
-  # gitCommit left empty and buildDate pinned to epoch for reproducibility.
+  # Mirrors kube::version::ldflags in hack/lib/version.sh, with gitCommit empty and buildDate at epoch for reproducibility.
   versionLdflags =
     let
       xFlag =
@@ -33,10 +31,7 @@ let
     buildGoModule ({
       inherit pname version src;
 
-      # K8s ships a complete vendor/ dir, generated in workspace mode (vendor/modules.txt
-      # starts with "## workspace"). Leave GOWORK on so -mod=vendor resolves against it;
-      # forcing GOWORK=off makes go's vendor consistency check fail against the workspace-style
-      # vendor/modules.txt (replace directives get flagged as "not marked as replaced").
+      # vendor/modules.txt is workspace-generated, so GOWORK stays on; GOWORK=off fails go's vendor consistency check ("not marked as replaced").
       vendorHash = null;
 
       subPackages = [ subPkg ];
@@ -60,9 +55,7 @@ let
     maintainers = with lib.maintainers; [ UnstoppableMango ];
   };
 
-  # kubectl is NOT in KUBE_STATIC_BINARIES — dynamically linked on Linux. It is
-  # the one core binary with a use off a cluster node, so it carries no platform
-  # restriction. Bound here so kube-addons can point the addon manager at it.
+  # kubectl is dynamically linked on Linux and useful off a cluster node, so it has no platform restriction.
   kubectlBin = mkBin "kubectl" "cmd/kubectl" false {
     description = "Run commands against Kubernetes clusters";
     mainProgram = "kubectl";
@@ -70,9 +63,7 @@ let
 in
 {
   kubectl = kubectlBin;
-  # Remaining binaries are in KUBE_STATIC_BINARIES per hack/lib/golang.sh. They
-  # are node and control-plane components, so they are offered on Linux only,
-  # except kube-apiserver.
+  # Node and control-plane components, so Linux only, except kube-apiserver.
   kubeadm = mkBin "kubeadm" "cmd/kubeadm" true {
     description = "Bootstrap a Kubernetes cluster";
     mainProgram = "kubeadm";
@@ -86,8 +77,7 @@ in
   kube-apiserver = mkBin "kube-apiserver" "cmd/kube-apiserver" true {
     description = "Kubernetes API server";
     mainProgram = "kube-apiserver";
-    # darwin carries it for controller-runtime's envtest, as setup-envtest's
-    # own darwin archives do.
+    # darwin carries it for controller-runtime's envtest, as setup-envtest's darwin archives do.
     platforms = lib.platforms.linux ++ lib.platforms.darwin;
   };
   kube-controller-manager = mkBin "kube-controller-manager" "cmd/kube-controller-manager" true {
@@ -106,10 +96,7 @@ in
     platforms = lib.platforms.linux;
   };
 
-  # The sandbox shim is a small C program rather than a Go binary, so it is
-  # built with stdenv straight from build/pause. The flags come from
-  # build/pause/Makefile minus its -static, which needs a static libc the
-  # default stdenv does not carry; nixpkgs links its pause dynamically too.
+  # build/pause/Makefile's flags minus -static, which needs a static libc the default stdenv lacks; nixpkgs links pause dynamically too.
   pause = stdenv.mkDerivation {
     pname = "pause";
     inherit version src;
@@ -135,10 +122,7 @@ in
     };
   };
 
-  # The addon manager is a pair of shell scripts. kube-addons-main.sh sources
-  # kube-addons.sh from the working directory or /opt, so the wrapper runs it
-  # from the directory holding both instead of patching the lookup. Both read
-  # KUBECTL_BIN for the kubectl to drive.
+  # kube-addons-main.sh sources kube-addons.sh from the working directory or /opt, so the wrapper runs from the directory holding both rather than patching the lookup.
   kube-addons = stdenv.mkDerivation {
     pname = "kube-addons";
     inherit version src;

@@ -4,7 +4,8 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## What this repo is
 
-Nix flake exposing versioned Kubernetes package sets. Each Kubernetes minor version gets a package set containing core binaries (kubectl, kubelet, kube-apiserver, the Linux-only pause shim, etc.), selected SIG projects (cluster-api, cluster-autoscaler, descheduler, external-dns, kind, kube-state-metrics, kustomize, metrics-server, node-feature-discovery, secrets-store-csi-driver), and etcd.
+Nix flake exposing versioned Kubernetes package sets.
+Each Kubernetes minor version gets a package set containing core binaries (kubectl, kubelet, kube-apiserver, the Linux-only pause shim, etc.), selected SIG projects (cluster-api, cluster-autoscaler, descheduler, external-dns, kind, kube-state-metrics, kustomize, metrics-server, node-feature-discovery, secrets-store-csi-driver), and etcd.
 
 Packages exposed as `legacyPackages.kubernetes."1.XX".<pkg>` and `legacyPackages.kubernetes.latest.<pkg>`.
 
@@ -55,68 +56,108 @@ nix build '.#legacyPackages.x86_64-linux.kubernetes."1.34".sigs.cluster-api'
 
 ## Architecture
 
-**`packages.json`**: the single source of truth. Holds the supported minors, `latest`, each minor's Kubernetes version + `srcHash` + `commit`, and one record per tracked SIG.
+**`packages.json`**: the single source of truth.
+Holds the supported minors, `latest`, each minor's Kubernetes version + `srcHash` + `commit`, and one record per tracked SIG.
 
-A SIG record carries `owner` and `path` (so the roster of SIG packages is data, not a hardcoded attrset), a `minors` map pinning a SIG version per Kubernetes minor, and a `versions` map of hashes keyed by *the SIG's own version*. Five optional fields cover projects that do not fit the common shape: `repo` when the repository is not named after the project (cluster-autoscaler lives in `kubernetes/autoscaler`), `tagPrefix` when a release tag is not `v` + version (`cluster-autoscaler-1.36.1`, `kustomize/v5.8.1`), `subdir` when the module sits inside a shared repository, `modRoot` when the module to build is inside the source but the rest of the repository must stay (a module that `replace`s its siblings by relative path needs this and *not* `subdir`, which would narrow the source and break those replaces), and `go` when the nixpkgs default toolchain does not build it. A `kubernetes` record takes `go` too.
+A SIG record carries `owner` and `path` (so the roster of SIG packages is data, not a hardcoded attrset), a `minors` map pinning a SIG version per Kubernetes minor, and a `versions` map of hashes keyed by *the SIG's own version*.
+Five optional fields cover projects that do not fit the common shape: `repo` when the repository is not named after the project (cluster-autoscaler lives in `kubernetes/autoscaler`), `tagPrefix` when a release tag is not `v` + version (`cluster-autoscaler-1.36.1`, `kustomize/v5.8.1`), `subdir` when the module sits inside a shared repository, `modRoot` when the module to build is inside the source but the rest of the repository must stay (a module that `replace`s its siblings by relative path needs this and *not* `subdir`, which would narrow the source and break those replaces), and `go` when the nixpkgs default toolchain does not build it.
+A `kubernetes` record takes `go` too.
 
-**Rosters.** Tracked packages live in one of two arrays: `sigs` for Kubernetes SIG projects, `deps` for things a control plane needs that Kubernetes does not own. They differ only in meaning and in which directory holds the definitions (`sigs/` or `deps/`); resolution, hashing, pruning, the README table, and the consistency check are written once and parameterised by the roster. Names must be unique across both, since the CLI's `--target` and `--sig` flags are a flat namespace. Packages are exposed as `legacyPackages.kubernetes."1.XX".sigs.<name>` and `.deps.<name>`. Two minors that pin the same SIG version therefore share one hash record, and `vendorHash` is resolved once per SIG version rather than once per minor.
+**Rosters.** Tracked packages live in one of two arrays: `sigs` for Kubernetes SIG projects, `deps` for things a control plane needs that Kubernetes does not own.
+They differ only in meaning and in which directory holds the definitions (`sigs/` or `deps/`); resolution, hashing, pruning, the README table, and the consistency check are written once and parameterised by the roster.
+Names must be unique across both, since the CLI's `--target` and `--sig` flags are a flat namespace.
+Packages are exposed as `legacyPackages.kubernetes."1.XX".sigs.<name>` and `.deps.<name>`.
+Two minors that pin the same SIG version therefore share one hash record, and `vendorHash` is resolved once per SIG version rather than once per minor.
 
 **`releases.nix`**: reads `packages.json` and resolves it per minor, looking each SIG's hashes up by the version that minor pins.
 
-**`mk-release.nix`**: takes one release entry from `releases.nix`, fetches the kubernetes/kubernetes source, calls `core/default.nix` for core binaries, then maps each SIG entry through `callPackage (./sigs + "/${sig.path}")`. It fetches each SIG's source itself and passes the result down as `src`, the same way core receives one, so the package definitions carry no fetching or tag-scheme logic.
+**`mk-release.nix`**: takes one release entry from `releases.nix`, fetches the kubernetes/kubernetes source, calls `core/default.nix` for core binaries, then maps each SIG entry through `callPackage (./sigs + "/${sig.path}")`.
+It fetches each SIG's source itself and passes the result down as `src`, the same way core receives one, so the package definitions carry no fetching or tag-scheme logic.
 
-`mk-release.nix` also joins every core binary except `pause` into a `kubernetes` package with `pause` in `passthru`, the layout `services.kubernetes.package` expects from nixpkgs' `kubernetes`. It is composition, not a core binary, so it lives there rather than in `core/default.nix` and stays out of the core inventory.
+`mk-release.nix` also joins every core binary except `pause` into a `kubernetes` package with `pause` in `passthru`, the layout `services.kubernetes.package` expects from nixpkgs' `kubernetes`.
+It is composition, not a core binary, so it lives there rather than in `core/default.nix` and stays out of the core inventory.
 
 **`flake.nix`**: maps `releases.nix` through `mkRelease` to produce `legacyPackages.kubernetes`, wires up `treefmt` (nixfmt), derives `checks` from the same data (every core binary for `latest`, kubectl for each older supported minor, one build per distinct package version per roster so minors sharing a version are not built twice, plus `consistency`), filters both rosters through `lib.meta.availableOn` so a package only appears in the checks for a system it declares support for, exposes the `update` package (`nix/updater.nix`, the `tools/update` Go CLI packaged via `gomod2nix`'s `buildGoApplication`), and exposes `devShells.default` (gnumake + nixfmt + nix-prefetch-github + go + the `gomod2nix` CLI).
 
-**`tools/update/`**: first-party Go module implementing the update lifecycle (`add-minor`, `fetch-versions`, `generate-hashes`, `vendor-hashes` cobra subcommands of a single `kubepkgs-update` binary). Packaged separately from core/sigs via `gomod2nix`/`buildGoApplication` (unrelated to the `buildGoModule` setup used for core/sigs, that migration, per commit `5025cf4`, is settled and unaffected by this).
+**`tools/update/`**: first-party Go module implementing the update lifecycle (`add-minor`, `fetch-versions`, `generate-hashes`, `vendor-hashes` cobra subcommands of a single `kubepkgs-update` binary).
+Packaged separately from core/sigs via `gomod2nix`/`buildGoApplication` (unrelated to the `buildGoModule` setup used for core/sigs, that migration, per commit `5025cf4`, is settled and unaffected by this).
 
 `internal/schema` owns `packages.json`: it is the only writer, and it emits deterministic key order (minors per `supported`, SIG versions per semver) so a regenerated file diffs cleanly.
 
-Each stage does only outstanding work. A Kubernetes record's `srcHash`/`commit` are written together with the version they describe and cleared by `fetch-versions` when that version is bumped, so a populated record is current by construction; SIG records are keyed by the version they describe, so the same holds without any clearing. `generate-hashes` therefore skips populated records and `vendor-hashes` skips resolved ones, making `make update-releases` cheap when little changed. `--force` and `--all` override this.
+Each stage does only outstanding work.
+A Kubernetes record's `srcHash`/`commit` are written together with the version they describe and cleared by `fetch-versions` when that version is bumped, so a populated record is current by construction; SIG records are keyed by the version they describe, so the same holds without any clearing.
+`generate-hashes` therefore skips populated records and `vendor-hashes` skips resolved ones, making `make update-releases` cheap when little changed.
+`--force` and `--all` override this.
 
-`fetch-versions` keeps every package inside the minor series it is already pinned to. It does not add a Kubernetes minor, retire one, or move `latest`, that is `add-minor`'s job; moving a SIG to a new minor series stays a deliberate edit to `packages.json`.
+`fetch-versions` keeps every package inside the minor series it is already pinned to.
+It does not add a Kubernetes minor, retire one, or move `latest`, that is `add-minor`'s job; moving a SIG to a new minor series stays a deliberate edit to `packages.json`.
 
-`add-minor` discovers the newest minor upstream via `ghclient.LatestMinor`, which shares `LatestPatch`'s prerelease filter, so a minor is only adopted once its stable `.0` ships. It writes the version and pins but leaves `srcHash`/`commit` empty, which is exactly `CoreEntry.NeedsFetch`, so `generate-hashes` picks the record up with no special casing and `add-minor` never has to touch `nixtool`.
+`add-minor` discovers the newest minor upstream via `ghclient.LatestMinor`, which shares `LatestPatch`'s prerelease filter, so a minor is only adopted once its stable `.0` ships.
+It writes the version and pins but leaves `srcHash`/`commit` empty, which is exactly `CoreEntry.NeedsFetch`, so `generate-hashes` picks the record up with no special casing and `add-minor` never has to touch `nixtool`.
 
-**`internal/readme`**: renders the README's supported-versions tables from `packages.json` and the package inventory lists under `## Usage` from the rosters that declare them, `packages.json` for deps and sigs and `core/default.nix` for core, and retargets version-pinned examples across `README.md`, `CLAUDE.md`, and `.github/copilot-instructions.md`. A parenthesised note already written beside a package in an inventory list (`` `pause` (Linux only) ``) is carried over. `nix/check-consistency.py` stays the independent verifier of both, so a generator bug is still caught.
+**`internal/readme`**: renders the README's supported-versions tables from `packages.json` and the package inventory lists under `## Usage` from the rosters that declare them, `packages.json` for deps and sigs and `core/default.nix` for core, and retargets version-pinned examples across `README.md`, `CLAUDE.md`, and `.github/copilot-instructions.md`.
+A parenthesised note already written beside a package in an inventory list (`` `pause` (Linux only) ``) is carried over.
+`nix/check-consistency.py` stays the independent verifier of both, so a generator bug is still caught.
 
-**`internal/corepkgs`**: reads the core package roster out of `core/default.nix`, which is where it lives since core binaries carry their build configuration in Nix rather than in `packages.json`. `check-consistency.py` reads the same file with its own parser.
+**`internal/corepkgs`**: reads the core package roster out of `core/default.nix`, which is where it lives since core binaries carry their build configuration in Nix rather than in `packages.json`.
+`check-consistency.py` reads the same file with its own parser.
 
-**`nix/go-version.nix`**: resolves a `go` pin like `"1.25"` to the matching nixpkgs attribute (`go_1_25`), throwing with the package name, the requested version, and the list nixpkgs actually offers when there is no match. `mk-release.nix` binds the result through `buildGoModule.override`, so a record without a pin is unaffected. This selects among the versions nixpkgs ships; a package needing a Go newer than any of them still needs the nixpkgs input to move.
+**`nix/go-version.nix`**: resolves a `go` pin like `"1.25"` to the matching nixpkgs attribute (`go_1_25`), throwing with the package name, the requested version, and the list nixpkgs actually offers when there is no match.
+`mk-release.nix` binds the result through `buildGoModule.override`, so a record without a pin is unaffected.
+This selects among the versions nixpkgs ships; a package needing a Go newer than any of them still needs the nixpkgs input to move.
 
-**`nix/consistency.nix`** + **`nix/check-consistency.py`**: the `consistency` check. Validates that `packages.json` agrees with itself (every supported minor has an entry, every pinned SIG version has a complete hash record, no placeholder vendorHash, no orphan records), with the tree (every SIG `path` has a `default.nix`), and with the README's supported-versions tables and package inventory lists. The inventory check compares names as a set and ignores notes, so it constrains the content of each list without re-implementing the generator's ordering. Runs standalone as `python3 nix/check-consistency.py .`.
+**`nix/consistency.nix`** + **`nix/check-consistency.py`**: the `consistency` check.
+Validates that `packages.json` agrees with itself (every supported minor has an entry, every pinned SIG version has a complete hash record, no placeholder vendorHash, no orphan records), with the tree (every SIG `path` has a `default.nix`), and with the README's supported-versions tables and package inventory lists.
+The inventory check compares names as a set and ignores notes, so it constrains the content of each list without re-implementing the generator's ordering.
+Runs standalone as `python3 nix/check-consistency.py .`.
 
 **`nix/updater.nix`**: the `buildGoApplication` derivation for `tools/update`; filters `src` down to `go.mod`/`go.sum`/`**/*.go`/`**/testdata/**` via the `globset` flake input + `lib.fileset.toSource`, so unrelated file changes in `tools/update` don't trigger a rebuild.
 
-**`core/default.nix`**: builds the core K8s Go binaries via a shared `mkBin` helper using `buildGoModule`, with `vendorHash = null` against K8s's own vendored `vendor/` dir (no download needed). `vendor/modules.txt` is workspace-generated (`## workspace` header) so `GOWORK` must stay on (default); forcing it off breaks Go's vendor consistency check against the workspace-style modules.txt. `pause` is not Go: a small C shim compiled with `stdenv` from `build/pause/linux/pause.c`, using the flags in `build/pause/Makefile`. `kube-addons` is not Go either: the addon manager's two shell scripts from `cluster/addons/addon-manager`, installed unpatched and run through a wrapper that changes into their directory (where `kube-addons-main.sh` looks for `kube-addons.sh`) and sets `KUBECTL_BIN` to the set's kubectl.
+**`core/default.nix`**: builds the core K8s Go binaries via a shared `mkBin` helper using `buildGoModule`, with `vendorHash = null` against K8s's own vendored `vendor/` dir (no download needed).
+`vendor/modules.txt` is workspace-generated (`## workspace` header) so `GOWORK` must stay on (default); forcing it off breaks Go's vendor consistency check against the workspace-style modules.txt.
+`pause` is not Go: a small C shim compiled with `stdenv` from `build/pause/linux/pause.c`, using the flags in `build/pause/Makefile`.
+`kube-addons` is not Go either: the addon manager's two shell scripts from `cluster/addons/addon-manager`, installed unpatched and run through a wrapper that changes into their directory (where `kube-addons-main.sh` looks for `kube-addons.sh`) and sets `KUBECTL_BIN` to the set's kubectl.
 
-**`deps/etcd/{etcd,etcdctl,etcdutl}/default.nix`**: etcd is three Go modules in one repository (`./server`, `./etcdctl`, `./etcdutl`), each with its own dependency graph, so it is three records over the same source rather than one. That gives each a `vendorHash` of its own with no schema special case, and keeps every record yielding exactly one derivation. They use `modRoot`, not `subdir`: the submodules `replace` each other by relative path, so narrowing the source breaks them. `GOWORK = "off"` because etcd 3.7 ships a root `go.work` that would otherwise change module resolution under `modRoot` (the opposite of core, which needs `GOWORK` on). Versions follow what Kubernetes itself pins in `build/dependencies.yaml` per minor.
+**`deps/etcd/{etcd,etcdctl,etcdutl}/default.nix`**: etcd is three Go modules in one repository (`./server`, `./etcdctl`, `./etcdutl`), each with its own dependency graph, so it is three records over the same source rather than one.
+That gives each a `vendorHash` of its own with no schema special case, and keeps every record yielding exactly one derivation.
+They use `modRoot`, not `subdir`: the submodules `replace` each other by relative path, so narrowing the source breaks them.
+`GOWORK = "off"` because etcd 3.7 ships a root `go.work` that would otherwise change module resolution under `modRoot` (the opposite of core, which needs `GOWORK` on).
+Versions follow what Kubernetes itself pins in `build/dependencies.yaml` per minor.
 
-**`sigs/<category>/<project>/default.nix`**: each SIG package receives a ready `src` and builds it with `buildGoModule` against a real `vendorHash`. A project that ships its own `vendor/` dir sets `deleteVendor = true` rather than `vendorHash = null`, keeping every SIG on one model.
+**`sigs/<category>/<project>/default.nix`**: each SIG package receives a ready `src` and builds it with `buildGoModule` against a real `vendorHash`.
+A project that ships its own `vendor/` dir sets `deleteVendor = true` rather than `vendorHash = null`, keeping every SIG on one model.
 
 ## Adding a new Kubernetes version
 
-1. `make add-minor` adopts the newest minor upstream, or `nix run .#update -- add-minor 1.38` pins a specific one. It adds the minor to `supported` and `kubernetes`, inherits every SIG pin from the newest minor already supported, moves `latest`, retires the oldest minor (pass `--no-retire` to widen the window instead), regenerates the README table, and retargets version-pinned doc examples.
+1. `make add-minor` adopts the newest minor upstream, or `nix run .#update -- add-minor 1.38` pins a specific one.
+   It adds the minor to `supported` and `kubernetes`, inherits every SIG pin from the newest minor already supported, moves `latest`, retires the oldest minor (pass `--no-retire` to widen the window instead), regenerates the README table, and retargets version-pinned doc examples.
 2. Run `make generate-hashes` then `make vendor-hashes` to fill the hashes `add-minor` deliberately leaves empty.
 
-Moving a SIG to a new version stays a separate, deliberate edit to `packages.json`. The `update` workflow runs step 1 and 2 weekly and opens a PR.
+Moving a SIG to a new version stays a separate, deliberate edit to `packages.json`.
+The `update` workflow runs step 1 and 2 weekly and opens a PR.
 
 ## Adding a new package
 
-1. Create `sigs/<category>/<project>/default.nix`, or `deps/<project>/default.nix` for a non-Kubernetes dependency, following the pattern of the existing packages. It takes `src` and `repo` as arguments rather than fetching anything itself.
-2. Append an entry to `sigs` or `deps` in `packages.json` with `name`, `owner`, `path` (relative to `sigs/`), and a `minors` map pinning a version per supported minor. Add `repo`, `tagPrefix`, `subdir`, or `go` if the project does not follow the common shape. Leave `versions` as `{}`.
-3. Run `make generate-hashes`, then `make vendor-hashes`, then `make sync-docs` to add the README column and the inventory list entry. A core binary added to `core/default.nix` needs step 3 alone; the consistency check fails until the README lists it.
+1. Create `sigs/<category>/<project>/default.nix`, or `deps/<project>/default.nix` for a non-Kubernetes dependency, following the pattern of the existing packages.
+   It takes `src` and `repo` as arguments rather than fetching anything itself.
+2. Append an entry to `sigs` or `deps` in `packages.json` with `name`, `owner`, `path` (relative to `sigs/`), and a `minors` map pinning a version per supported minor.
+   Add `repo`, `tagPrefix`, `subdir`, or `go` if the project does not follow the common shape.
+   Leave `versions` as `{}`.
+3. Run `make generate-hashes`, then `make vendor-hashes`, then `make sync-docs` to add the README column and the inventory list entry.
+   A core binary added to `core/default.nix` needs step 3 alone; the consistency check fails until the README lists it.
 
 No Nix needs editing: `mk-release.nix` maps over whatever `packages.json` declares.
 
 ## Dev environment
 
-`direnv` + `use flake` provides the dev shell automatically. GITHUB_TOKEN is exported via `gh auth token` in `.envrc`.
+`direnv` + `use flake` provides the dev shell automatically.
+GITHUB_TOKEN is exported via `gh auth token` in `.envrc`.
 
-`.github/workflows/update.yml` runs weekly (and on demand), opening one PR for a new minor and a separate one for patch bumps. It does not run `nix flake check` itself; the PR it opens triggers `ci.yml`, which does.
+`.github/workflows/update.yml` runs weekly (and on demand), opening one PR for a new minor and a separate one for patch bumps.
+It does not run `nix flake check` itself; the PR it opens triggers `ci.yml`, which does.
 
-`.github/workflows/ci.yml` runs `nix flake check` on every PR/push to main, once per system the flake offers, each on a runner of that architecture: `x86_64-linux` on `thecluster` (the org-level `gha-runner-scale-set` under `unmango`), `aarch64-linux` on `ubuntu-24.04-arm`, `aarch64-darwin` on `macos-15`. The checks are derived from `packages.json` and filtered through `lib.meta.availableOn`, so a version bump changes what CI covers with no list to update, and the darwin leg resolves to kubectl per supported minor, kube-apiserver for the latest minor, etcd per distinct version, and `consistency`, `treefmt`, and `update`.
+`.github/workflows/ci.yml` runs `nix flake check` on every PR/push to main, once per system the flake offers, each on a runner of that architecture: `x86_64-linux` on `thecluster` (the org-level `gha-runner-scale-set` under `unmango`), `aarch64-linux` on `ubuntu-24.04-arm`, `aarch64-darwin` on `macos-15`.
+The checks are derived from `packages.json` and filtered through `lib.meta.availableOn`, so a version bump changes what CI covers with no list to update, and the darwin leg resolves to kubectl per supported minor, kube-apiserver for the latest minor, etcd per distinct version, and `consistency`, `treefmt`, and `update`.
 
 The matrix job is `check`.
 A separate `build` job with `needs: [check]` and `if: always()` fails unless `needs.check.result` is `success`.
@@ -124,7 +165,8 @@ The `main` ruleset requires a status check whose context is exactly `build`, whi
 Renaming it breaks merges on every PR, and the ruleset is managed by Pulumi in `UnstoppableMango/vcs`, not here.
 
 `thecluster`'s runner image ships a daemonless nix with an in-cluster `ncps` substituter set through `NIX_CONFIG`, and the runner has no sudo, so that leg skips `install-nix-action` and `magic-nix-cache-action` and runs `nix flake check` directly.
-The hosted legs push to the `unstoppablemango` cachix cache through the post-build hook `setup-nix` installs. `thecluster` does not push anywhere: that hook does not work with a daemonless nix, and x86_64-linux outputs deliberately stay on-prem rather than growing the cachix cache.
+The hosted legs push to the `unstoppablemango` cachix cache through the post-build hook `setup-nix` installs.
+`thecluster` does not push anywhere: that hook does not work with a daemonless nix, and x86_64-linux outputs deliberately stay on-prem rather than growing the cachix cache.
 
 Hercules CI builds `x86_64-linux` only, per `herculesCI.ciSystems` in the `UnstoppableMango/nix-systems` input.
 aarch64 does not belong there: a job queued for an agent that does not exist sits pending forever.
@@ -133,12 +175,15 @@ aarch64 does not belong there: a job queued for an agent that does not exist sit
 
 ### Issue tracker
 
-Issues are tracked in this repo's GitHub Issues. See `docs/agents/issue-tracker.md`.
+Issues are tracked in this repo's GitHub Issues.
+See `docs/agents/issue-tracker.md`.
 
 ### Triage labels
 
-The five default triage labels, each named after its role (`needs-triage`, `needs-info`, `ready-for-agent`, `ready-for-human`, `wontfix`). See `docs/agents/triage-labels.md`.
+The five default triage labels, each named after its role (`needs-triage`, `needs-info`, `ready-for-agent`, `ready-for-human`, `wontfix`).
+See `docs/agents/triage-labels.md`.
 
 ### Domain docs
 
-Single-context: one `CONTEXT.md` and `docs/adr/` at the repo root. See `docs/agents/domain.md`.
+Single-context: one `CONTEXT.md` and `docs/adr/` at the repo root.
+See `docs/agents/domain.md`.

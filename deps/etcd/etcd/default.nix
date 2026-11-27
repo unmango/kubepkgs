@@ -20,20 +20,13 @@ buildGoModule {
   env = {
     # Matches scripts/build_lib.sh, which builds every etcd binary with cgo off.
     CGO_ENABLED = "0";
-    # etcd 3.7 ships a root go.work above modRoot, which would otherwise change
-    # module resolution out from under the pinned vendorHash. Unlike core, which
-    # deliberately leaves GOWORK on for Kubernetes' workspace-mode vendor tree,
-    # etcd vendors nothing and each module resolves on its own.
+    # etcd 3.7 ships a root go.work above modRoot that would change module resolution under the pinned vendorHash.
     GOWORK = "off";
   };
-  # The server module's main package is the module root, so the binary lands as
-  # `server`.
   preInstall = ''
     mv "$GOPATH/bin/server" "$GOPATH/bin/etcd"
   '';
-  # The only injectable symbol. Version is baked into api/version/version.go at
-  # release time and is deliberately not overridden here, so `etcd --version`
-  # always reports what the tag actually says.
+  # Version is baked in at release time and not overridden, so `etcd --version` reports what the tag says.
   ldflags = [
     "-w"
     "-s"
